@@ -9,6 +9,8 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 import subprocess
 import time
 import socket
+import sys
+import os
 
 def is_port_in_use(port):
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
@@ -18,14 +20,23 @@ def start_backend():
     if not is_port_in_use(8000):
         print("🚀 Starting FastAPI backend on port 8000...")
         # Start Uvicorn in the background
-        subprocess.Popen(
+        # We redirect stdout/stderr to sys.stdout/stderr so logs show up in Streamlit Cloud console
+        process = subprocess.Popen(
             [sys.executable, "-m", "uvicorn", "backend.main:app", "--host", "127.0.0.1", "--port", "8000"],
             cwd=os.path.abspath(os.path.join(os.path.dirname(__file__), "..")),
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
+            stdout=sys.stdout,
+            stderr=sys.stderr,
         )
-        # Wait for it to start
-        time.sleep(5)
+        
+        # Wait for port to be ready (up to 30 seconds)
+        print("⏳ Waiting for backend to start...")
+        for i in range(30):
+            if is_port_in_use(8000):
+                print("✅ Backend started successfully!")
+                return
+            time.sleep(1)
+            
+        print("❌ Backend failed to start on port 8000 within 30 seconds.")
     else:
         print("✅ Backend already running.")
 
