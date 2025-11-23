@@ -1,6 +1,7 @@
 """Text embedding utilities."""
 
 import logging
+import os
 from typing import List
 
 from lexguard.config import settings
@@ -14,21 +15,21 @@ _embedding_model = None
 def get_embedding(text: str) -> List[float]:
     """
     Generate embedding vector for text.
-
-    Uses the configured embedding provider.
-
-    Args:
-        text: Text to embed
-
-    Returns:
-        Embedding vector as list of floats
     """
-    if settings.embedding_provider == "openai":
+    provider = settings.embedding_provider
+    logger.info(f"Generating embedding using provider: '{provider}'")
+    
+    if provider == "openai":
         return _get_openai_embedding(text)
-    elif settings.embedding_provider == "gemini":
+    elif provider == "gemini":
         return _get_gemini_embedding(text)
     else:
-        return _get_sentence_transformer_embedding(text)
+        # Fallback logic
+        try:
+            return _get_sentence_transformer_embedding(text)
+        except ImportError:
+            logger.warning(f"Could not import sentence_transformers. Provider was '{provider}'. Falling back to Gemini.")
+            return _get_gemini_embedding(text)
 
 
 def _get_sentence_transformer_embedding(text: str) -> List[float]:
@@ -52,7 +53,7 @@ def _get_openai_embedding(text: str) -> List[float]:
     client = OpenAI(api_key=settings.openai_api_key)
 
     response = client.embeddings.create(
-        model="text-embedding-3-small",  # or use settings.embedding_model
+        model="text-embedding-3-small",
         input=text,
     )
 
@@ -63,7 +64,6 @@ def _get_gemini_embedding(text: str) -> List[float]:
     """Get embedding using Google Gemini."""
     from lexguard.llm.gemini_client import get_gemini_embeddings
     
-    # Use the configured model name or default
     embeddings = get_gemini_embeddings(model_name=settings.embedding_model)
     return embeddings.embed_query(text)
 
@@ -71,19 +71,21 @@ def _get_gemini_embedding(text: str) -> List[float]:
 def get_embeddings_batch(texts: List[str]) -> List[List[float]]:
     """
     Generate embeddings for multiple texts efficiently.
-
-    Args:
-        texts: List of texts to embed
-
-    Returns:
-        List of embedding vectors
     """
-    if settings.embedding_provider == "openai":
+    provider = settings.embedding_provider
+    logger.info(f"Generating batch embeddings using provider: '{provider}'")
+
+    if provider == "openai":
         return _get_openai_embeddings_batch(texts)
-    elif settings.embedding_provider == "gemini":
+    elif provider == "gemini":
         return _get_gemini_embeddings_batch(texts)
     else:
-        return _get_sentence_transformer_embeddings_batch(texts)
+        # Fallback logic
+        try:
+            return _get_sentence_transformer_embeddings_batch(texts)
+        except ImportError:
+            logger.warning(f"Could not import sentence_transformers. Provider was '{provider}'. Falling back to Gemini.")
+            return _get_gemini_embeddings_batch(texts)
 
 
 def _get_sentence_transformer_embeddings_batch(texts: List[str]) -> List[List[float]]:
