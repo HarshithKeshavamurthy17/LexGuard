@@ -1,8 +1,8 @@
 """LLM abstraction layer."""
 
-import os
 import logging
 
+from lexguard.config import settings
 from lexguard.llm.base import LLMClient
 from lexguard.llm.openai_client import OpenAIClient
 from lexguard.llm.ollama_client import OllamaClient
@@ -23,27 +23,24 @@ def get_llm_client() -> LLMClient:
     Returns:
         LLM client instance
     """
-    provider = os.getenv("LLM_PROVIDER", "ollama").lower()
+    provider = settings.llm_provider.lower()
 
     if provider == "ollama":
-        model = os.getenv("OLLAMA_MODEL", "llama3.2")
-        base_url = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
-        logger.info(f"Using Ollama with model: {model}")
-        return OllamaClient(model=model, base_url=base_url)
-    elif provider == "openai":
+        logger.info(f"Using Ollama with model: {settings.ollama_model}")
+        return OllamaClient(
+            model=settings.ollama_model, base_url=settings.ollama_base_url
+        )
+
+    if provider == "openai":
         logger.info("Using OpenAI API")
         return OpenAIClient()
-    elif provider == "gemini":
+
+    if provider == "gemini":
         logger.info("Using Gemini API")
-        return GeminiClient()
-    else:
-        # Try Ollama first, fallback to OpenAI
-        try:
-            logger.info("Auto-detecting LLM provider...")
-            return OllamaClient()
-        except Exception:
-            logger.warning("Ollama not available, falling back to OpenAI")
-            return OpenAIClient()
+        return GeminiClient(model=settings.gemini_model)
+
+    logger.warning("Unknown LLM provider '%s'. Defaulting to Gemini.", provider)
+    return GeminiClient(model=settings.gemini_model)
 
 
 __all__ = ["LLMClient", "OpenAIClient", "OllamaClient", "GeminiClient", "get_llm_client"]
