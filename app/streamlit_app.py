@@ -7,6 +7,7 @@ import time
 import socket
 import re
 from datetime import datetime
+from collections.abc import Mapping
 
 # Add the root directory to sys.path to allow imports from 'app' and 'lexguard'
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
@@ -24,6 +25,36 @@ BACKEND_PORT = int(os.getenv("BACKEND_PORT", "8000"))
 BACKEND_BASE_URL = os.getenv("BACKEND_BASE_URL", f"http://{BACKEND_HOST}:{BACKEND_PORT}")
 API_BASE_URL = os.getenv("API_BASE_URL", f"{BACKEND_BASE_URL}/api")
 HEALTH_ENDPOINT = os.getenv("BACKEND_HEALTH_ENDPOINT", f"{BACKEND_BASE_URL}/health")
+
+
+def _apply_secret_to_env(key: str, value):
+    """Set environment variable from a secret value."""
+    if key:
+        os.environ[key.upper()] = str(value)
+
+
+def _walk_secrets(prefix: str, payload):
+    if isinstance(payload, Mapping):
+        for sub_key, sub_val in payload.items():
+            next_prefix = f"{prefix}_{sub_key}" if prefix else sub_key
+            _walk_secrets(next_prefix, sub_val)
+    else:
+        _apply_secret_to_env(prefix, payload)
+
+
+def sync_streamlit_secrets_to_env():
+    """Mirror Streamlit secrets into os.environ so the backend process inherits them."""
+    try:
+        secrets_obj = st.secrets
+    except Exception:
+        return
+
+    if isinstance(secrets_obj, Mapping):
+        for top_key, top_value in secrets_obj.items():
+            _walk_secrets(top_key, top_value)
+
+
+sync_streamlit_secrets_to_env()
 
 
 def is_port_in_use(port: int) -> bool:
