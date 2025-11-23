@@ -15,11 +15,15 @@ class Settings(BaseSettings):
     """Application settings."""
 
     # LLM Configuration
-    llm_provider: Literal["ollama", "openai"] = os.getenv("LLM_PROVIDER", "ollama")
+    llm_provider: Literal["ollama", "openai", "gemini"] = os.getenv("LLM_PROVIDER", "gemini")
     
-    # OpenAI Configuration (optional if using Ollama)
+    # OpenAI Configuration
     openai_api_key: str = os.getenv("OPENAI_API_KEY", "")
     openai_model: str = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
+    
+    # Google Gemini Configuration
+    google_api_key: str = os.getenv("GOOGLE_API_KEY", "")
+    gemini_model: str = os.getenv("GEMINI_MODEL", "gemini-1.5-flash")
     
     # Ollama Configuration
     ollama_model: str = os.getenv("OLLAMA_MODEL", "llama3.2")
@@ -27,10 +31,10 @@ class Settings(BaseSettings):
 
     # Embedding Configuration
     embedding_model: str = os.getenv(
-        "EMBEDDING_MODEL", "sentence-transformers/all-MiniLM-L6-v2"
+        "EMBEDDING_MODEL", "models/embedding-001"
     )
-    embedding_provider: Literal["sentence-transformers", "openai"] = os.getenv(
-        "EMBEDDING_PROVIDER", "sentence-transformers"
+    embedding_provider: Literal["sentence-transformers", "openai", "gemini"] = os.getenv(
+        "EMBEDDING_PROVIDER", "gemini"
     )
 
     # Storage Configuration
@@ -59,4 +63,3 @@ class Settings(BaseSettings):
 
 # Global settings instance
 settings = Settings()
-
