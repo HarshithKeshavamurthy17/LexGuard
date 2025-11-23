@@ -15,7 +15,7 @@ def get_embedding(text: str) -> List[float]:
     """
     Generate embedding vector for text.
 
-    Uses the configured embedding provider (SentenceTransformers or OpenAI).
+    Uses the configured embedding provider.
 
     Args:
         text: Text to embed
@@ -25,6 +25,8 @@ def get_embedding(text: str) -> List[float]:
     """
     if settings.embedding_provider == "openai":
         return _get_openai_embedding(text)
+    elif settings.embedding_provider == "gemini":
+        return _get_gemini_embedding(text)
     else:
         return _get_sentence_transformer_embedding(text)
 
@@ -57,6 +59,15 @@ def _get_openai_embedding(text: str) -> List[float]:
     return response.data[0].embedding
 
 
+def _get_gemini_embedding(text: str) -> List[float]:
+    """Get embedding using Google Gemini."""
+    from lexguard.llm.gemini_client import get_gemini_embeddings
+    
+    # Use the configured model name or default
+    embeddings = get_gemini_embeddings(model_name=settings.embedding_model)
+    return embeddings.embed_query(text)
+
+
 def get_embeddings_batch(texts: List[str]) -> List[List[float]]:
     """
     Generate embeddings for multiple texts efficiently.
@@ -69,6 +80,8 @@ def get_embeddings_batch(texts: List[str]) -> List[List[float]]:
     """
     if settings.embedding_provider == "openai":
         return _get_openai_embeddings_batch(texts)
+    elif settings.embedding_provider == "gemini":
+        return _get_gemini_embeddings_batch(texts)
     else:
         return _get_sentence_transformer_embeddings_batch(texts)
 
@@ -99,3 +112,9 @@ def _get_openai_embeddings_batch(texts: List[str]) -> List[List[float]]:
     return [item.embedding for item in response.data]
 
 
+def _get_gemini_embeddings_batch(texts: List[str]) -> List[List[float]]:
+    """Get embeddings in batch using Google Gemini."""
+    from lexguard.llm.gemini_client import get_gemini_embeddings
+    
+    embeddings = get_gemini_embeddings(model_name=settings.embedding_model)
+    return embeddings.embed_documents(texts)
