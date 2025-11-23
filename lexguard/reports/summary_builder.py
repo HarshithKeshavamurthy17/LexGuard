@@ -80,7 +80,7 @@ def _build_rule_based_summary(contract: Contract) -> str:
 
     for clause in clauses:
         # Count clause types
-        clause_type = clause.clause_type.value
+        clause_type = _get_clause_type_value(clause)
         clause_type_counts[clause_type] = clause_type_counts.get(clause_type, 0) + 1
 
         # Count risk levels
@@ -139,12 +139,19 @@ def get_key_risks(contract: Contract, limit: int = 5) -> list[str]:
 
     risks = []
     for clause in high_risk_clauses[:limit]:
-        risk_text = (
-            f"{clause.clause_type.value.replace('_', ' ').title()}: "
-            f"{clause.text[:100]}..."
-        )
+        clause_type_str = _get_clause_type_value(clause).replace("_", " ").title()
+        risk_text = f"{clause_type_str}: {clause.text[:100]}..."
         risks.append(risk_text)
 
     return risks
+
+
+def _get_clause_type_value(clause) -> str:
+    """Normalize clause_type to a plain string regardless of enum usage."""
+    clause_type = getattr(clause, "clause_type", "")
+    if hasattr(clause_type, "value"):
+        return clause_type.value
+    return str(clause_type)
+
 
 

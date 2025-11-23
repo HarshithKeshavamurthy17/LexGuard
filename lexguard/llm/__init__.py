@@ -6,6 +6,7 @@ import logging
 from lexguard.llm.base import LLMClient
 from lexguard.llm.openai_client import OpenAIClient
 from lexguard.llm.ollama_client import OllamaClient
+from lexguard.llm.gemini_client import GeminiClient
 
 logger = logging.getLogger(__name__)
 
@@ -32,6 +33,9 @@ def get_llm_client() -> LLMClient:
     elif provider == "openai":
         logger.info("Using OpenAI API")
         return OpenAIClient()
+    elif provider == "gemini":
+        logger.info("Using Gemini API")
+        return GeminiClient()
     else:
         # Try Ollama first, fallback to OpenAI
         try:
@@ -42,5 +46,5 @@ def get_llm_client() -> LLMClient:
             return OpenAIClient()
 
 
-__all__ = ["LLMClient", "OpenAIClient", "OllamaClient", "get_llm_client"]
+__all__ = ["LLMClient", "OpenAIClient", "OllamaClient", "GeminiClient", "get_llm_client"]
 
