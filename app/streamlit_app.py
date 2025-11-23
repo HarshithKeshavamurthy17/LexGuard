@@ -7,7 +7,6 @@ import time
 import socket
 import re
 from datetime import datetime
-from collections.abc import Mapping
 
 # Add the root directory to sys.path to allow imports from 'app' and 'lexguard'
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
@@ -15,16 +14,6 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 import httpx
 import plotly.graph_objects as go
 import streamlit as st
-
-from analysis_displays import show_key_terms, show_parties, show_dates, show_obligations
-
-
-# Backend configuration (override via environment variables when deploying)
-BACKEND_HOST = os.getenv("BACKEND_HOST", "127.0.0.1")
-BACKEND_PORT = int(os.getenv("BACKEND_PORT", "8000"))
-BACKEND_BASE_URL = os.getenv("BACKEND_BASE_URL", f"http://{BACKEND_HOST}:{BACKEND_PORT}")
-API_BASE_URL = os.getenv("API_BASE_URL", f"{BACKEND_BASE_URL}/api")
-HEALTH_ENDPOINT = os.getenv("BACKEND_HEALTH_ENDPOINT", f"{BACKEND_BASE_URL}/health")
 
 
 def _apply_secret_to_env(key: str, value):
@@ -34,6 +23,8 @@ def _apply_secret_to_env(key: str, value):
 
 
 def _walk_secrets(prefix: str, payload):
+    from collections.abc import Mapping  # local import to avoid global dependency
+
     if isinstance(payload, Mapping):
         for sub_key, sub_val in payload.items():
             next_prefix = f"{prefix}_{sub_key}" if prefix else sub_key
@@ -49,12 +40,24 @@ def sync_streamlit_secrets_to_env():
     except Exception:
         return
 
+    from collections.abc import Mapping
+
     if isinstance(secrets_obj, Mapping):
         for top_key, top_value in secrets_obj.items():
             _walk_secrets(top_key, top_value)
 
 
 sync_streamlit_secrets_to_env()
+
+from analysis_displays import show_key_terms, show_parties, show_dates, show_obligations
+
+
+# Backend configuration (override via environment variables when deploying)
+BACKEND_HOST = os.getenv("BACKEND_HOST", "127.0.0.1")
+BACKEND_PORT = int(os.getenv("BACKEND_PORT", "8000"))
+BACKEND_BASE_URL = os.getenv("BACKEND_BASE_URL", f"http://{BACKEND_HOST}:{BACKEND_PORT}")
+API_BASE_URL = os.getenv("API_BASE_URL", f"{BACKEND_BASE_URL}/api")
+HEALTH_ENDPOINT = os.getenv("BACKEND_HEALTH_ENDPOINT", f"{BACKEND_BASE_URL}/health")
 
 
 def is_port_in_use(port: int) -> bool:
