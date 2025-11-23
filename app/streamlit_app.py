@@ -1,58 +1,87 @@
 """LexGuard Enhanced UI - Beautiful, Modern, Comprehensive Contract Analysis."""
-import sys
+
 import os
-# Add the root directory to sys.path to allow imports from 'app' and 'lexguard'
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-
-
-# --- BACKEND STARTUP FOR STREAMLIT CLOUD ---
+import sys
 import subprocess
 import time
 import socket
-import sys
-import os
-
-def is_port_in_use(port):
-    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-        return s.connect_ex(('127.0.0.1', port)) == 0
-
-def start_backend():
-    if not is_port_in_use(8000):
-        print("🚀 Starting FastAPI backend on port 8000...")
-        # Start Uvicorn in the background
-        # We redirect stdout/stderr to sys.stdout/stderr so logs show up in Streamlit Cloud console
-        process = subprocess.Popen(
-            [sys.executable, "-m", "uvicorn", "backend.main:app", "--host", "127.0.0.1", "--port", "8000"],
-            cwd=os.path.abspath(os.path.join(os.path.dirname(__file__), "..")),
-            stdout=sys.stdout,
-            stderr=sys.stderr,
-        )
-        
-        # Wait for port to be ready (up to 30 seconds)
-        print("⏳ Waiting for backend to start...")
-        for i in range(30):
-            if is_port_in_use(8000):
-                print("✅ Backend started successfully!")
-                return
-            time.sleep(1)
-            
-        print("❌ Backend failed to start on port 8000 within 30 seconds.")
-    else:
-        print("✅ Backend already running.")
-
-start_backend()
-# -------------------------------------------
-
-# Force reload: v2
-import streamlit as st
-import httpx
-import pandas as pd
-from datetime import datetime
-import time
 import re
+from datetime import datetime
+
+# Add the root directory to sys.path to allow imports from 'app' and 'lexguard'
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+
+import httpx
 import plotly.graph_objects as go
-import plotly.express as px
+import streamlit as st
+
 from analysis_displays import show_key_terms, show_parties, show_dates, show_obligations
+
+
+# Backend configuration (override via environment variables when deploying)
+BACKEND_HOST = os.getenv("BACKEND_HOST", "127.0.0.1")
+BACKEND_PORT = int(os.getenv("BACKEND_PORT", "8000"))
+BACKEND_BASE_URL = os.getenv("BACKEND_BASE_URL", f"http://{BACKEND_HOST}:{BACKEND_PORT}")
+API_BASE_URL = os.getenv("API_BASE_URL", f"{BACKEND_BASE_URL}/api")
+HEALTH_ENDPOINT = os.getenv("BACKEND_HEALTH_ENDPOINT", f"{BACKEND_BASE_URL}/health")
+
+
+def is_port_in_use(port: int) -> bool:
+    """Check whether a local port is already in use."""
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+        return sock.connect_ex(("127.0.0.1", port)) == 0
+
+
+def start_backend_process():
+    """Ensure the FastAPI backend is running for Streamlit Cloud."""
+    if is_port_in_use(BACKEND_PORT):
+        print("✅ Backend already running.")
+        return
+
+    print(f"🚀 Starting FastAPI backend on port {BACKEND_PORT}...")
+    subprocess.Popen(
+        [
+            sys.executable,
+            "-m",
+            "uvicorn",
+            "backend.main:app",
+            "--host",
+            "127.0.0.1",
+            "--port",
+            str(BACKEND_PORT),
+        ],
+        cwd=os.path.abspath(os.path.join(os.path.dirname(__file__), "..")),
+        stdout=sys.stdout,
+        stderr=sys.stderr,
+    )
+
+
+def wait_for_backend_ready(timeout_seconds: int = 120) -> bool:
+    """Poll the backend health endpoint until it becomes available."""
+    print("⏳ Waiting for backend health check...")
+    deadline = time.time() + timeout_seconds
+
+    while time.time() < deadline:
+        try:
+            response = httpx.get(HEALTH_ENDPOINT, timeout=2.0)
+            if response.status_code == 200:
+                print("✅ Backend health check passed.")
+                return True
+        except Exception:
+            pass
+        time.sleep(1)
+
+    print("❌ Backend failed to become healthy within the timeout window.")
+    return False
+
+
+@st.cache_resource(show_spinner="🚀 Warming up LexGuard API backend...")
+def ensure_backend_ready() -> bool:
+    """Start the backend (if needed) and wait for it to be reachable."""
+    start_backend_process()
+    if not wait_for_backend_ready():
+        raise RuntimeError("Backend failed to start within the expected time.")
+    return True
 
 # Configure page with custom theme
 st.set_page_config(
@@ -62,8 +91,15 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-# API base URL
-API_BASE_URL = "http://127.0.0.1:8000/api"
+# Ensure backend is ready before rendering the UI
+try:
+    ensure_backend_ready()
+except RuntimeError:
+    st.error(
+        "❌ The AI backend did not start in time. Please try re-running the app or "
+        "check the deployment logs for details."
+    )
+    st.stop()
 
 # Enhanced Custom CSS with modern design and theme compatibility
 st.markdown(
@@ -594,6 +630,8 @@ def initialize_session_state():
 # API functions (same as before but with better error handling)
 def upload_file(file):
     """Upload a contract file to the API."""
+    progress_bar = None
+    status_text = None
     try:
         with st.spinner("🔄 Analyzing your contract with AI..."):
             progress_bar = st.progress(0)
@@ -627,12 +665,23 @@ def upload_file(file):
                 status_text.empty()
                 
                 return response.json()
-    except httpx.HTTPError as e:
-        st.error(f"❌ Upload failed: {str(e)}")
+    except httpx.HTTPStatusError as exc:
+        server_message = exc.response.text.strip() if exc.response else "No details provided."
+        st.error(
+            f"❌ Upload failed ({exc.response.status_code}): {server_message}"
+        )
+        return None
+    except httpx.RequestError as exc:
+        st.error(f"❌ Upload failed: Could not reach backend ({exc}).")
         return None
     except Exception as e:
         st.error(f"❌ Unexpected error: {str(e)}")
         return None
+    finally:
+        if progress_bar is not None:
+            progress_bar.empty()
+        if status_text is not None:
+            status_text.empty()
 
 
 def get_contract_details(contract_id):

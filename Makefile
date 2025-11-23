@@ -19,7 +19,7 @@ api:
 	poetry run uvicorn backend.main:app --reload --host 0.0.0.0 --port 8000
 
 ui:
-	poetry run streamlit run app/streamlit_app_enhanced.py --server.port 8501
+	poetry run streamlit run app/streamlit_app.py --server.port 8501
 
 run:
 	@echo "Starting LexGuard Contract AI..."
@@ -28,7 +28,7 @@ run:
 	@echo "Press Ctrl+C to stop both services"
 	@(trap 'kill 0' SIGINT; \
 		poetry run uvicorn backend.main:app --reload --host 0.0.0.0 --port 8000 & \
-		poetry run streamlit run app/streamlit_app_enhanced.py --server.port 8501 & \
+		poetry run streamlit run app/streamlit_app.py --server.port 8501 & \
 		wait)
 
 lint:

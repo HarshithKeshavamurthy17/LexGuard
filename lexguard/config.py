@@ -30,12 +30,10 @@ class Settings(BaseSettings):
     ollama_base_url: str = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
 
     # Embedding Configuration
-    embedding_model: str = os.getenv(
-        "EMBEDDING_MODEL", "models/embedding-001"
-    )
     embedding_provider: Literal["sentence-transformers", "openai", "gemini"] = os.getenv(
-        "EMBEDDING_PROVIDER", "gemini"
+        "EMBEDDING_PROVIDER", "sentence-transformers"
     )
+    embedding_model: str = os.getenv("EMBEDDING_MODEL", "")
 
     # Storage Configuration
     chroma_db_path: Path = Path(os.getenv("CHROMA_DB_PATH", "./data/chroma"))
@@ -59,6 +57,17 @@ class Settings(BaseSettings):
         (self.data_dir / "contracts").mkdir(exist_ok=True)
         (self.data_dir / "uploads").mkdir(exist_ok=True)
         (self.data_dir / "reports").mkdir(exist_ok=True)
+
+        # Ensure sensible defaults for embedding models per provider
+        if self.embedding_provider == "sentence-transformers":
+            if not self.embedding_model or self.embedding_model.startswith("models/"):
+                self.embedding_model = "all-MiniLM-L6-v2"
+        elif self.embedding_provider == "openai":
+            if not self.embedding_model:
+                self.embedding_model = "text-embedding-3-small"
+        else:  # gemini
+            if not self.embedding_model:
+                self.embedding_model = "models/embedding-001"
 
 
 # Global settings instance
