@@ -7,3 +7,4 @@ from lexguard.models.risk import ClauseRisk, RiskLevel
 __all__ = ["Contract", "Clause", "ClauseType", "ClauseRisk", "RiskLevel"]
 
 
+

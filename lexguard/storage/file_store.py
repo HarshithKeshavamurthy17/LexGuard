@@ -145,3 +145,4 @@ def delete_contract(contract_id: str) -> bool:
         raise
 
 
+

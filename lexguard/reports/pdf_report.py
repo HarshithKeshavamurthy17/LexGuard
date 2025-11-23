@@ -235,3 +235,4 @@ def generate_pdf_report(
     return output_path
 
 
+

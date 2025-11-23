@@ -6,3 +6,4 @@ from lexguard.storage.file_store import load_contract, save_contract, list_contr
 __all__ = ["get_chroma_client", "save_contract", "load_contract", "list_contracts"]
 
 
+

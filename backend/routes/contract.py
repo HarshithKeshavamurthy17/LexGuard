@@ -316,3 +316,4 @@ async def analyze_clause(contract_id: str, clause_id: str, request: ClauseUpdate
     except Exception as e:
         logger.error(f"Error analyzing clause {clause_id}: {e}")
         raise HTTPException(status_code=500, detail="Error analyzing clause")
+

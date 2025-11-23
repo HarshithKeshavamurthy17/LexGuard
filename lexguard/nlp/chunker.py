@@ -137,3 +137,4 @@ def merge_short_clauses(clauses: List[str], min_length: int = 100) -> List[str]:
     return merged
 
 
+

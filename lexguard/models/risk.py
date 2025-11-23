@@ -33,3 +33,4 @@ class ClauseRisk(BaseModel):
         use_enum_values = True
 
 
+

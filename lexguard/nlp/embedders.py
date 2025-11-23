@@ -15,8 +15,19 @@ try:
 except ImportError:
     HAS_SENTENCE_TRANSFORMERS = False
 
+# Default local-friendly model for sentence-transformers
+DEFAULT_ST_MODEL = "sentence-transformers/all-MiniLM-L6-v2"
+
 # Cache for embedding model
 _embedding_model = None
+
+
+def _resolve_sentence_transformer_model_name() -> str:
+    """Return a valid SentenceTransformer model name regardless of env overrides."""
+    model_name = (settings.embedding_model or "").strip()
+    if not model_name or model_name.startswith("models/"):
+        return DEFAULT_ST_MODEL
+    return model_name
 
 
 def get_embedding(text: str) -> List[float]:
@@ -49,10 +60,11 @@ def _get_sentence_transformer_embedding(text: str) -> List[float]:
         raise ImportError("sentence_transformers is not installed")
 
     if _embedding_model is None:
-        logger.info(f"Loading embedding model: {settings.embedding_model}")
+        model_name = _resolve_sentence_transformer_model_name()
+        logger.info(f"Loading embedding model: {model_name}")
         from sentence_transformers import SentenceTransformer
 
-        _embedding_model = SentenceTransformer(settings.embedding_model)
+        _embedding_model = SentenceTransformer(model_name)
 
     embedding = _embedding_model.encode(text, convert_to_tensor=False)
     return embedding.tolist()
@@ -110,9 +122,11 @@ def _get_sentence_transformer_embeddings_batch(texts: List[str]) -> List[List[fl
         raise ImportError("sentence_transformers is not installed")
 
     if _embedding_model is None:
+        model_name = _resolve_sentence_transformer_model_name()
+        logger.info(f"Loading embedding model: {model_name}")
         from sentence_transformers import SentenceTransformer
 
-        _embedding_model = SentenceTransformer(settings.embedding_model)
+        _embedding_model = SentenceTransformer(model_name)
 
     embeddings = _embedding_model.encode(texts, convert_to_tensor=False)
     return [emb.tolist() for emb in embeddings]
@@ -137,3 +151,4 @@ def _get_gemini_embeddings_batch(texts: List[str]) -> List[List[float]]:
     
     embeddings = get_gemini_embeddings(model_name=settings.embedding_model)
     return embeddings.embed_documents(texts)
+

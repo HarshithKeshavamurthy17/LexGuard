@@ -1302,78 +1302,64 @@ def show_enhanced_clauses(contract_id):
 
 
 def show_enhanced_chat(contract_id):
-    """Show enhanced chat interface."""
+    """Show comprehensive questions interface."""
     st.markdown("""
-    <h2 style="color: #111827; font-weight: 800; font-size: 2rem;">💬 Chat with Your Contract</h2>
+    <h2 style="color: #111827; font-weight: 800; font-size: 2rem;">💡 Comprehensive Questions</h2>
+    <p style="color: #6b7280; font-size: 1.1rem; margin-bottom: 2rem;">
+        Select a question below to get an instant, AI-generated answer based on your document.
+    </p>
     """, unsafe_allow_html=True)
 
-    # Suggested questions
-    with st.expander("💡 Suggested Questions", expanded=True):
-        col1, col2 = st.columns(2)
-        
-        with col1:
-            if st.button("📌 What are the main obligations?"):
-                st.session_state.chat_query = "What are the main obligations in this contract?"
-            if st.button("⏰ What are the key deadlines?"):
-                st.session_state.chat_query = "What are the important dates and deadlines?"
-            if st.button("💰 What are the payment terms?"):
-                st.session_state.chat_query = "What are the payment terms and amounts?"
-        
-        with col2:
-            if st.button("⚠️ What are the biggest risks?"):
-                st.session_state.chat_query = "What are the highest risk clauses I should worry about?"
-            if st.button("🚪 How can I terminate this?"):
-                st.session_state.chat_query = "What are the termination conditions and notice periods?"
-            if st.button("🛡️ What liability do I have?"):
-                st.session_state.chat_query = "What liability and indemnification obligations do I have?"
+    # Predefined questions list
+    questions = [
+        "What are the main obligations?",
+        "What are the termination conditions?",
+        "What is the governing law?",
+        "Are there any indemnification clauses?",
+        "What are the confidentiality terms?",
+        "What is the duration of the contract?",
+        "Are there non-compete clauses?",
+        "What are the payment terms?",
+        "Is there a force majeure clause?",
+        "What are the dispute resolution mechanisms?",
+        "Are there any penalties for breach?",
+        "What are the renewal terms?"
+    ]
 
-    # Chat history
-    for message in st.session_state.chat_history:
-        with st.chat_message(message["role"]):
-            st.write(message["content"])
+    # Initialize answer state if not present
+    if "current_answer" not in st.session_state:
+        st.session_state.current_answer = None
+    if "current_question" not in st.session_state:
+        st.session_state.current_question = None
 
-    # Chat input
-    query = st.chat_input("Ask anything about your contract...")
+    # Create a grid layout for questions
+    cols = st.columns(3)  # 3 columns for the grid
     
-    # Handle suggested question
-    if "chat_query" in st.session_state:
-        query = st.session_state.chat_query
-        del st.session_state.chat_query
+    # Display questions as buttons in the grid
+    for i, question in enumerate(questions):
+        with cols[i % 3]:
+            if st.button(question, key=f"q_btn_{i}", use_container_width=True):
+                with st.spinner(f"Analyzing: {question}..."):
+                    response = chat_with_contract(contract_id, question)
+                    if response:
+                        st.session_state.current_question = question
+                        st.session_state.current_answer = response.get("response", "No answer found.")
+                    else:
+                        st.session_state.current_answer = "Sorry, I couldn't generate an answer at this time."
 
-    if query:
-        st.session_state.chat_history.append({"role": "user", "content": query})
-
-        with st.chat_message("user"):
-            st.write(query)
-
-        with st.chat_message("assistant"):
-            with st.spinner("🤔 Analyzing..."):
-                response = chat_with_contract(contract_id, query)
-
-                if response:
-                    st.write(response["answer"])
-
-                    if response.get("relevant_clauses"):
-                        with st.expander("📚 Related Clauses"):
-                            for clause in response["relevant_clauses"]:
-                                risk_emoji = {"high": "🔴", "medium": "🟡", "low": "🟢"}.get(clause['risk_level'], "⚪")
-                                st.markdown(f"{risk_emoji} **{clause['type'].replace('_', ' ').title()}** [{clause['risk_level']}]")
-                                # Clean and format clause text
-                                cleaned_clause_text = re.sub(r'\s+', ' ', clause["text"].strip())
-                                st.markdown(f"""
-                                <div style="background: #f8fafc; padding: 1rem; border-radius: 8px; 
-                                            margin: 0.5rem 0; border-left: 3px solid #94a3b8;">
-                                    <p style="color: #1e293b; font-size: 1rem; font-weight: 600; margin: 0; 
-                                             line-height: 1.7; white-space: normal; word-wrap: break-word;">
-                                        {cleaned_clause_text}
-                                    </p>
-                                </div>
-                                """, unsafe_allow_html=True)
-                                st.markdown("---")
-
-                    st.session_state.chat_history.append(
-                        {"role": "assistant", "content": response["answer"]}
-                    )
+    # Display the answer if one is selected
+    if st.session_state.current_answer:
+        st.markdown("---")
+        st.markdown("### 📝 Answer")
+        st.info(f"**Q: {st.session_state.current_question}**")
+        st.markdown(
+            f"""
+            <div style="background-color: white; padding: 20px; border-radius: 10px; border: 1px solid #e5e7eb; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); color: #1f2937; line-height: 1.6;">
+                {st.session_state.current_answer}
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
 
 
 def show_report_section(contract_id):

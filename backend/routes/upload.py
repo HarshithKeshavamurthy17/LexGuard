@@ -166,3 +166,4 @@ async def upload_contract(file: UploadFile = File(...)):
         raise HTTPException(status_code=500, detail=f"Error processing file: {str(e)}")
 
 
+

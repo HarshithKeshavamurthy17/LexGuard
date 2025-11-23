@@ -69,3 +69,4 @@ async def get_comprehensive_analysis(contract_id: str):
         raise HTTPException(status_code=500, detail="Error performing analysis")
 
 
+

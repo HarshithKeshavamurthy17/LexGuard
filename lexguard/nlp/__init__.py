@@ -8,3 +8,4 @@ from lexguard.nlp.vector_store import VectorStore
 __all__ = ["split_into_clauses", "classify_clause", "get_embedding", "VectorStore"]
 
 
+

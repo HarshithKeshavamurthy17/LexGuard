@@ -49,3 +49,4 @@ def get_embeddings() -> Any:
         return HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
     else:
         raise ValueError(f"Unsupported embedding provider: {provider}")
+

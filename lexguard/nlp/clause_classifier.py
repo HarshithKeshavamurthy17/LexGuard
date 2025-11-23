@@ -193,3 +193,4 @@ def get_classification_confidence(text: str, clause_type: ClauseType) -> float:
     return confidence
 
 
+

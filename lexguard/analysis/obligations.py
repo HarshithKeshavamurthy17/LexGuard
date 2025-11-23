@@ -97,3 +97,4 @@ def extract_responsibilities(text: str) -> List[str]:
     return responsibilities[:8]
 
 
+
