@@ -1343,7 +1343,7 @@ def show_enhanced_chat(contract_id):
                     response = chat_with_contract(contract_id, question)
                     if response:
                         st.session_state.current_question = question
-                        st.session_state.current_answer = response.get("response", "No answer found.")
+                        st.session_state.current_answer = response.get("answer", "No answer found.")
                     else:
                         st.session_state.current_answer = "Sorry, I couldn't generate an answer at this time."
 
