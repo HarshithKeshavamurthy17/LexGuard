@@ -1311,21 +1311,59 @@ def show_enhanced_chat(contract_id):
     </p>
     """, unsafe_allow_html=True)
 
-    # Predefined questions list
-    questions = [
-        "What are the main obligations?",
-        "What are the termination conditions?",
-        "What is the governing law?",
-        "Are there any indemnification clauses?",
-        "What are the confidentiality terms?",
-        "What is the duration of the contract?",
-        "Are there non-compete clauses?",
-        "What are the payment terms?",
-        "Is there a force majeure clause?",
-        "What are the dispute resolution mechanisms?",
-        "Are there any penalties for breach?",
-        "What are the renewal terms?"
-    ]
+    # Predefined questions categorized
+    question_categories = {
+        "🔑 Key Terms & Dates": [
+            "What is the effective date?",
+            "What is the expiration date?",
+            "What is the duration/term of the contract?",
+            "What are the renewal terms?",
+            "Is there an auto-renewal clause?",
+            "What are the notice periods for renewal or termination?",
+            "Who are the parties involved?",
+            "What is the territory or scope of the agreement?"
+        ],
+        "💰 Financials": [
+            "What are the payment terms?",
+            "What is the total contract value?",
+            "Are there any late payment penalties?",
+            "Are there any price adjustment clauses?",
+            "Who is responsible for taxes?",
+            "Are there any hidden fees or expenses?",
+            "What is the invoicing schedule?",
+            "Are there any audit rights?"
+        ],
+        "🛡️ Risk & Liability": [
+            "What are the indemnification obligations?",
+            "What are the limitations of liability?",
+            "Are there any warranties or guarantees?",
+            "What are the insurance requirements?",
+            "Is there a force majeure clause?",
+            "What are the confidentiality obligations?",
+            "Are there any liquidated damages?",
+            "What are the data protection requirements?"
+        ],
+        "🚪 Termination & Breach": [
+            "How can I terminate this contract?",
+            "What constitutes a material breach?",
+            "Are there any termination fees?",
+            "What happens upon termination?",
+            "What are the dispute resolution mechanisms?",
+            "Is arbitration mandatory?",
+            "What is the cure period for a breach?",
+            "Can I terminate for convenience?"
+        ],
+        "⚖️ General & Compliance": [
+            "What is the governing law?",
+            "Are there non-compete clauses?",
+            "Are there non-solicitation clauses?",
+            "Are there assignment restrictions?",
+            "Who are the authorized signatories?",
+            "Are there any exclusivity clauses?",
+            "Is there a 'time is of the essence' clause?",
+            "What are the amendment procedures?"
+        ]
+    }
 
     # Initialize answer state if not present
     if "current_answer" not in st.session_state:
@@ -1333,20 +1371,25 @@ def show_enhanced_chat(contract_id):
     if "current_question" not in st.session_state:
         st.session_state.current_question = None
 
-    # Create a grid layout for questions
-    cols = st.columns(3)  # 3 columns for the grid
-    
-    # Display questions as buttons in the grid
-    for i, question in enumerate(questions):
-        with cols[i % 3]:
-            if st.button(question, key=f"q_btn_{i}", use_container_width=True):
-                with st.spinner(f"Analyzing: {question}..."):
-                    response = chat_with_contract(contract_id, question)
-                    if response:
-                        st.session_state.current_question = question
-                        st.session_state.current_answer = response.get("answer", "No answer found.")
-                    else:
-                        st.session_state.current_answer = "Sorry, I couldn't generate an answer at this time."
+    # Create tabs for categories
+    tabs = st.tabs(list(question_categories.keys()))
+
+    # Iterate through tabs and categories
+    for i, (category, questions) in enumerate(question_categories.items()):
+        with tabs[i]:
+            # Create a grid layout for questions within the tab
+            cols = st.columns(2)  # 2 columns for better readability of longer questions
+            
+            for j, question in enumerate(questions):
+                with cols[j % 2]:
+                    if st.button(question, key=f"q_btn_{i}_{j}", use_container_width=True):
+                        with st.spinner(f"Analyzing: {question}..."):
+                            response = chat_with_contract(contract_id, question)
+                            if response:
+                                st.session_state.current_question = question
+                                st.session_state.current_answer = response.get("answer", "No answer found.")
+                            else:
+                                st.session_state.current_answer = "Sorry, I couldn't generate an answer at this time."
 
     # Display the answer if one is selected
     if st.session_state.current_answer:
