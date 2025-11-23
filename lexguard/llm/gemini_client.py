@@ -12,6 +12,20 @@ from lexguard.llm.base import LLMClient
 
 logger = logging.getLogger(__name__)
 
+DEFAULT_GEMINI_MODEL = "models/gemini-1.5-flash-latest"
+
+
+def _normalize_gemini_model_name(model_name: Optional[str]) -> str:
+    """Ensure the Gemini model name uses the `models/...` syntax expected by v1beta."""
+    if not model_name:
+        return DEFAULT_GEMINI_MODEL
+
+    model_name = model_name.strip()
+    if model_name.startswith("models/"):
+        return model_name
+
+    return f"models/{model_name}"
+
 
 class GeminiClient(LLMClient):
     """Gemini API client implementation."""
@@ -21,7 +35,8 @@ class GeminiClient(LLMClient):
             raise ValueError("GOOGLE_API_KEY not configured")
 
         genai.configure(api_key=settings.google_api_key)
-        self.model_name = model or settings.gemini_model or "gemini-1.5-flash"
+        normalized_model = _normalize_gemini_model_name(model or settings.gemini_model)
+        self.model_name = normalized_model
         self.client = genai.GenerativeModel(self.model_name)
         logger.info(f"Initialized Gemini client with model: {self.model_name}")
 
@@ -81,13 +96,14 @@ class GeminiClient(LLMClient):
 
 
 def get_gemini_llm(
-    model_name: str = "gemini-1.5-flash",
+    model_name: str = DEFAULT_GEMINI_MODEL,
     temperature: float = 0.0,
     max_tokens: Optional[int] = None,
 ) -> genai.GenerativeModel:
     """Backwards-compatible helper to create a raw Gemini model."""
     genai.configure(api_key=settings.google_api_key)
-    return genai.GenerativeModel(model_name)
+    normalized_model = _normalize_gemini_model_name(model_name)
+    return genai.GenerativeModel(normalized_model)
 
 
 def get_gemini_embeddings(

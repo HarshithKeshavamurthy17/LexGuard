@@ -23,7 +23,7 @@ class Settings(BaseSettings):
     
     # Google Gemini Configuration
     google_api_key: str = os.getenv("GOOGLE_API_KEY", "")
-    gemini_model: str = os.getenv("GEMINI_MODEL", "gemini-1.5-flash")
+    gemini_model: str = os.getenv("GEMINI_MODEL", "models/gemini-1.5-flash-latest")
     
     # Ollama Configuration
     ollama_model: str = os.getenv("OLLAMA_MODEL", "llama3.2")
