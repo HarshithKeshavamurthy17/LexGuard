@@ -89,30 +89,23 @@ async def chat_with_contract(contract_id: str, request: ChatRequest):
 
         context = "\n".join(context_parts)
 
-        # Generate answer using LLM
-        logger.info("Generating answer with LLM...")
-        llm = get_llm_client()
+        # RAG-Only Mode: Construct answer directly from retrieved clauses
+        logger.info("RAG-Only mode: Constructing answer from retrieved clauses...")
+        
+        intro = f"**Based on the document, here are the relevant sections regarding '{request.query}':**\n\n"
+        
+        highlights = []
+        for result in search_results:
+            clause_text = result["text"].strip()
+            metadata = result["metadata"]
+            clause_type = metadata.get("clause_type", "Clause").replace("_", " ").title()
+            
+            # Format each clause as a distinct block
+            highlights.append(f"**{clause_type}**\n> {clause_text}")
 
-        prompt = CONTRACT_QA_PROMPT.format(context=context, question=request.query)
-
-        messages = [
-            {
-                "role": "system",
-                "content": "You are a legal contract assistant. Answer questions accurately based on the provided contract clauses.",
-            },
-            {"role": "user", "content": prompt},
-        ]
-
-        try:
-            answer = llm.chat(messages, temperature=0.5, max_tokens=500)
-            logger.info("Successfully generated answer")
-            return ChatResponse(answer=answer, relevant_clauses=relevant_clauses)
-        except Exception as llm_error:
-            logger.error(
-                "LLM chat failed, returning rule-based answer: %s", llm_error, exc_info=True
-            )
-            fallback_answer = _build_rule_based_chat_answer(request.query, relevant_clauses)
-            return ChatResponse(answer=fallback_answer, relevant_clauses=relevant_clauses)
+        answer = intro + "\n\n".join(highlights)
+        
+        return ChatResponse(answer=answer, relevant_clauses=relevant_clauses)
 
     except HTTPException:
         raise
