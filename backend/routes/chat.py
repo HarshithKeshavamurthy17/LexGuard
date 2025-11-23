@@ -103,16 +103,51 @@ async def chat_with_contract(contract_id: str, request: ChatRequest):
             {"role": "user", "content": prompt},
         ]
 
-        answer = llm.chat(messages, temperature=0.5, max_tokens=500)
+        try:
+            answer = llm.chat(messages, temperature=0.5, max_tokens=500)
+            logger.info("Successfully generated answer")
+            return ChatResponse(answer=answer, relevant_clauses=relevant_clauses)
+        except Exception as llm_error:
+            logger.error(
+                "LLM chat failed, returning rule-based answer: %s", llm_error, exc_info=True
+            )
+            fallback_answer = _build_rule_based_chat_answer(request.query, relevant_clauses)
+            return ChatResponse(answer=fallback_answer, relevant_clauses=relevant_clauses)
 
-        logger.info("Successfully generated answer")
-
-        return ChatResponse(answer=answer, relevant_clauses=relevant_clauses)
-
+    except HTTPException:
+        raise
     except Exception as e:
-        logger.error(f"Error in chat endpoint: {e}", exc_info=True)
+        logger.error(f"Unexpected error in chat endpoint: {e}", exc_info=True)
         raise HTTPException(
             status_code=500, detail="Error processing your question. Please try again."
         )
+
+
+def _build_rule_based_chat_answer(question: str, clauses: list[dict]) -> str:
+    """
+    Provide a deterministic fallback answer based on retrieved clauses when the LLM fails.
+    """
+    if not clauses:
+        return (
+            "I couldn't reach the AI model, and there were no relevant clauses to reference. "
+            "Please try rephrasing your question or re-running the analysis."
+        )
+
+    intro = (
+        "I couldn't reach the AI model, so here's a quick summary based on the clauses I found:\n"
+    )
+    highlights = []
+    for clause in clauses:
+        clause_type = clause.get("type", "clause").replace("_", " ").title()
+        text = clause.get("text", "").strip()
+        snippet = text if len(text) <= 280 else text[:280].rstrip() + "..."
+        highlights.append(f"- {clause_type}: {snippet}")
+
+    outro = (
+        "\nIf you need more detail, try refining the question or download the report for the full text."
+    )
+
+    return intro + "\n".join(highlights) + outro
+
 
 
