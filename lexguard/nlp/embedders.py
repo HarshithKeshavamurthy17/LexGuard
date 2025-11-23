@@ -8,6 +8,13 @@ from lexguard.config import settings
 
 logger = logging.getLogger(__name__)
 
+# Check availability of sentence_transformers
+try:
+    import sentence_transformers
+    HAS_SENTENCE_TRANSFORMERS = True
+except ImportError:
+    HAS_SENTENCE_TRANSFORMERS = False
+
 # Cache for embedding model
 _embedding_model = None
 
@@ -23,18 +30,23 @@ def get_embedding(text: str) -> List[float]:
         return _get_openai_embedding(text)
     elif provider == "gemini":
         return _get_gemini_embedding(text)
+    elif provider == "sentence-transformers" and HAS_SENTENCE_TRANSFORMERS:
+        return _get_sentence_transformer_embedding(text)
     else:
-        # Fallback logic
-        try:
-            return _get_sentence_transformer_embedding(text)
-        except ImportError:
-            logger.warning(f"Could not import sentence_transformers. Provider was '{provider}'. Falling back to Gemini.")
-            return _get_gemini_embedding(text)
+        # Fallback
+        if provider == "sentence-transformers":
+            logger.warning("sentence-transformers requested but not installed. Falling back to Gemini.")
+        else:
+            logger.warning(f"Unknown or missing provider '{provider}'. Defaulting to Gemini.")
+        return _get_gemini_embedding(text)
 
 
 def _get_sentence_transformer_embedding(text: str) -> List[float]:
     """Get embedding using SentenceTransformers."""
     global _embedding_model
+
+    if not HAS_SENTENCE_TRANSFORMERS:
+        raise ImportError("sentence_transformers is not installed")
 
     if _embedding_model is None:
         logger.info(f"Loading embedding model: {settings.embedding_model}")
@@ -79,18 +91,23 @@ def get_embeddings_batch(texts: List[str]) -> List[List[float]]:
         return _get_openai_embeddings_batch(texts)
     elif provider == "gemini":
         return _get_gemini_embeddings_batch(texts)
+    elif provider == "sentence-transformers" and HAS_SENTENCE_TRANSFORMERS:
+        return _get_sentence_transformer_embeddings_batch(texts)
     else:
-        # Fallback logic
-        try:
-            return _get_sentence_transformer_embeddings_batch(texts)
-        except ImportError:
-            logger.warning(f"Could not import sentence_transformers. Provider was '{provider}'. Falling back to Gemini.")
-            return _get_gemini_embeddings_batch(texts)
+        # Fallback
+        if provider == "sentence-transformers":
+            logger.warning("sentence-transformers requested but not installed. Falling back to Gemini.")
+        else:
+            logger.warning(f"Unknown or missing provider '{provider}'. Defaulting to Gemini.")
+        return _get_gemini_embeddings_batch(texts)
 
 
 def _get_sentence_transformer_embeddings_batch(texts: List[str]) -> List[List[float]]:
     """Get embeddings in batch using SentenceTransformers."""
     global _embedding_model
+
+    if not HAS_SENTENCE_TRANSFORMERS:
+        raise ImportError("sentence_transformers is not installed")
 
     if _embedding_model is None:
         from sentence_transformers import SentenceTransformer
