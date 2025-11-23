@@ -90,7 +90,7 @@ async def chat_with_contract(contract_id: str, request: ChatRequest):
         context = "\n".join(context_parts)
 
         # RAG-Only Mode: Construct answer directly from retrieved clauses
-        logger.info("RAG-Only mode: Constructing answer from retrieved clauses...")
+        logger.info("RAG-Only Mode V2 ACTIVATED: Constructing answer from retrieved clauses...")
         
         intro = f"**Based on the document, here are the relevant sections regarding '{request.query}':**\n\n"
         

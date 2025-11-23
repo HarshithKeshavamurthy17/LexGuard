@@ -1,5 +1,6 @@
 """LexGuard Enhanced UI - Beautiful, Modern, Comprehensive Contract Analysis."""
 
+# Force reload: v5
 import os
 import sys
 import subprocess
