@@ -5,6 +5,34 @@ import os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 
+# --- BACKEND STARTUP FOR STREAMLIT CLOUD ---
+import subprocess
+import time
+import socket
+
+def is_port_in_use(port):
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        return s.connect_ex(('localhost', port)) == 0
+
+def start_backend():
+    if not is_port_in_use(8000):
+        print("🚀 Starting FastAPI backend on port 8000...")
+        # Start Uvicorn in the background
+        subprocess.Popen(
+            ["uvicorn", "backend.main:app", "--host", "0.0.0.0", "--port", "8000"],
+            cwd=os.path.abspath(os.path.join(os.path.dirname(__file__), "..")),
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )
+        # Wait for it to start
+        time.sleep(5)
+    else:
+        print("✅ Backend already running.")
+
+start_backend()
+# -------------------------------------------
+
+
 
 import streamlit as st
 import httpx
