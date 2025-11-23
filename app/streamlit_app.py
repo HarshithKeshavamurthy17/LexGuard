@@ -1,4 +1,10 @@
 """LexGuard Enhanced UI - Beautiful, Modern, Comprehensive Contract Analysis."""
+import sys
+import os
+# Add the root directory to sys.path to allow imports from 'app' and 'lexguard'
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
+
 
 import streamlit as st
 import httpx
@@ -8,7 +14,7 @@ import time
 import re
 import plotly.graph_objects as go
 import plotly.express as px
-from app.analysis_displays import show_key_terms, show_parties, show_dates, show_obligations
+from analysis_displays import show_key_terms, show_parties, show_dates, show_obligations
 
 # Configure page with custom theme
 st.set_page_config(
@@ -1636,4 +1642,3 @@ def show_comparison_interface(contract_id):
 
 if __name__ == "__main__":
     main()
-
