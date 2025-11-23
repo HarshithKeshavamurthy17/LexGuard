@@ -973,7 +973,7 @@ def show_contract_analysis():
     tab1, tab2, tab3, tab4, tab5 = st.tabs([
         "📊 Dashboard", 
         "📋 Clauses", 
-        "💬 AI Chat", 
+        "💡 Contract Q&A", 
         "📄 Report",
         "🔍 Deep Analysis"
     ])
@@ -1624,7 +1624,7 @@ def show_report_section(contract_id):
     <div style="background: white; padding: 2rem; border-radius: 12px; border: 2px solid #e5e7eb;">
         <ol style="color: #1f2937; line-height: 2; font-size: 1.05rem;">
             <li><strong>Review all high-risk clauses</strong> identified in this report with your legal team</li>
-            <li><strong>Use the AI Chat tab</strong> to ask specific questions about any clause or term</li>
+            <li><strong>Use the Contract Q&A tab</strong> to ask specific questions about any clause or term</li>
             <li><strong>Check the Deep Analysis tab</strong> for detailed breakdowns of parties, dates, and obligations</li>
             <li><strong>Prepare negotiation points</strong> for clauses that don't align with your interests</li>
             <li><strong>Consult with an attorney</strong> before signing, especially for high-value or complex agreements</li>
@@ -1635,7 +1635,7 @@ def show_report_section(contract_id):
     
     # Footer
     st.markdown("---")
-    st.info("💬 **Have questions?** Use the AI Chat tab to ask anything about this contract!")
+    st.info("💡 **Have questions?** Use the Contract Q&A tab to ask anything about this contract!")
 
 
 
@@ -1718,7 +1718,7 @@ def show_deep_analysis(contract_id):
     
     # Summary footer
     st.markdown("---")
-    st.info("💡 **Tip**: Use the AI Chat tab to ask specific questions about any of these elements!")
+    st.info("💡 **Tip**: Use the Contract Q&A tab to ask specific questions about any of these elements!")
 
 
 
