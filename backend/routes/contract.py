@@ -7,6 +7,7 @@ from fastapi import APIRouter, HTTPException, Response
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
 
+from lexguard.storage.schema import ContractMetadata
 from lexguard.models import Clause
 from lexguard.models.risk import ClauseRisk
 from lexguard.reports import build_contract_summary, generate_pdf_report
