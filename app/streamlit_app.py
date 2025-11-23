@@ -12,14 +12,14 @@ import socket
 
 def is_port_in_use(port):
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-        return s.connect_ex(('localhost', port)) == 0
+        return s.connect_ex(('127.0.0.1', port)) == 0
 
 def start_backend():
     if not is_port_in_use(8000):
         print("🚀 Starting FastAPI backend on port 8000...")
         # Start Uvicorn in the background
         subprocess.Popen(
-            ["uvicorn", "backend.main:app", "--host", "0.0.0.0", "--port", "8000"],
+            [sys.executable, "-m", "uvicorn", "backend.main:app", "--host", "127.0.0.1", "--port", "8000"],
             cwd=os.path.abspath(os.path.join(os.path.dirname(__file__), "..")),
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,
@@ -53,7 +53,7 @@ st.set_page_config(
 )
 
 # API base URL
-API_BASE_URL = "http://localhost:8000/api"
+API_BASE_URL = "http://127.0.0.1:8000/api"
 
 # Enhanced Custom CSS with modern design and theme compatibility
 st.markdown(
