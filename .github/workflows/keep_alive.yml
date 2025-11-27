@@ -9,11 +9,20 @@ jobs:
   ping_app:
     runs-on: ubuntu-latest
     steps:
-      - name: Ping App
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+
+      - name: Install dependencies
         run: |
-          if [ -z "${{ secrets.STREAMLIT_APP_URL }}" ]; then
-            echo "Error: STREAMLIT_APP_URL secret is not set."
-            exit 1
-          fi
-          echo "Pinging ${{ secrets.STREAMLIT_APP_URL }}..."
-          curl -I "${{ secrets.STREAMLIT_APP_URL }}"
+          python -m pip install --upgrade pip
+          pip install selenium webdriver-manager
+
+      - name: Run Keep Alive Script
+        env:
+          STREAMLIT_APP_URL: ${{ secrets.STREAMLIT_APP_URL }}
+        run: python scripts/keep_alive.py
