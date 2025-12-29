@@ -1,6 +1,7 @@
 # Ignore large files and directories for Railway builds
 data/
 *.pdf
+!sample docs/*.pdf
 *.db
 *.sqlite
 *.sqlite3

@@ -668,6 +668,75 @@ def initialize_session_state():
         st.session_state.selected_clause = None
 
 
+def get_sample_documents():
+    """
+    Get list of available sample documents.
+    
+    Returns:
+        Dictionary mapping display names to file paths
+    """
+    import os
+    from pathlib import Path
+    
+    sample_docs_dir = Path(__file__).parent.parent / "sample docs"
+    
+    if not sample_docs_dir.exists():
+        return {}
+    
+    sample_docs = {}
+    pdf_files = list(sample_docs_dir.glob("*.pdf"))
+    
+    # Map files to display names
+    for pdf_file in pdf_files:
+        # Use filename without extension as display name
+        display_name = pdf_file.stem
+        # Clean up the name for display
+        display_name = display_name.replace("_", " ").replace("-", " ").title()
+        sample_docs[display_name] = str(pdf_file)
+    
+    return sample_docs
+
+
+def use_sample_document(file_path: str, doc_name: str):
+    """
+    Load and analyze a sample document.
+    
+    Args:
+        file_path: Path to the sample PDF file
+        doc_name: Display name of the document
+    """
+    import os
+    import io
+    
+    try:
+        # Check if file exists
+        if not os.path.exists(file_path):
+            st.error(f"❌ Sample document not found: {doc_name}")
+            return
+        
+        # Read file content
+        with open(file_path, "rb") as f:
+            file_content = f.read()
+        
+        # Create a BytesIO object that mimics Streamlit's UploadedFile
+        file_like = io.BytesIO(file_content)
+        file_like.name = os.path.basename(file_path)
+        
+        # Upload and analyze
+        with st.spinner(f"📄 Loading {doc_name}..."):
+            result = upload_file(file_like)
+            if result:
+                st.session_state.contract_id = result["contract_id"]
+                st.success(f"✅ Sample document loaded! Found {result['clause_count']} clauses.")
+                st.balloons()
+                time.sleep(0.5)
+                st.rerun()
+            else:
+                st.error("❌ Failed to analyze sample document. Please try again.")
+    except Exception as e:
+        st.error(f"❌ Error loading sample document: {str(e)}")
+
+
 # API functions (same as before but with better error handling)
 def upload_file(file):
     """Upload a contract file to the API."""
@@ -861,6 +930,19 @@ def main():
                     st.balloons()
                     time.sleep(0.5)
                     st.rerun()
+
+        # Sample Documents Section
+        st.markdown("---")
+        st.markdown("#### 📚 Try Sample Documents")
+        st.markdown("_Test the app with these sample contracts:_", help="Click any sample document to analyze it instantly")
+        
+        sample_docs = get_sample_documents()
+        if sample_docs:
+            for doc_name, doc_path in sample_docs.items():
+                if st.button(f"📄 {doc_name}", key=f"sample_{doc_name}", use_container_width=True):
+                    use_sample_document(doc_path, doc_name)
+        else:
+            st.info("💡 Sample documents will appear here once added to the 'sample docs' folder")
 
         st.markdown("---")
 

@@ -25,6 +25,7 @@ ENV/
 # Data files (don't need in image)
 data/
 *.pdf
+!sample docs/*.pdf
 *.json
 *.db
 *.sqlite
