@@ -1,7 +1,9 @@
 # Ignore large files and directories for Railway builds
 data/
-*.pdf
-!sample docs/*.pdf
+# Exclude PDFs in data/uploads/reports, but keep sample docs
+data/**/*.pdf
+uploads/**/*.pdf
+reports/**/*.pdf
 *.db
 *.sqlite
 *.sqlite3
