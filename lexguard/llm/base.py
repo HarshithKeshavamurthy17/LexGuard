@@ -45,8 +45,13 @@ def get_embeddings() -> Any:
         from lexguard.llm.gemini_client import get_gemini_embeddings
         return get_gemini_embeddings()
     elif provider == "sentence-transformers":
-        from langchain_community.embeddings import HuggingFaceEmbeddings
-        return HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
+        try:
+            from langchain_community.embeddings import HuggingFaceEmbeddings
+            return HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
+        except ImportError:
+            raise ImportError(
+                "langchain_community is not installed. Install it with: pip install langchain-community"
+            )
     else:
         raise ValueError(f"Unsupported embedding provider: {provider}")
 

@@ -5,7 +5,6 @@ import logging
 from typing import Any, Dict, List, Optional
 
 import google.generativeai as genai
-from langchain_google_genai import GoogleGenerativeAIEmbeddings
 
 from lexguard.config import settings
 from lexguard.llm.base import LLMClient
@@ -106,14 +105,61 @@ def get_gemini_llm(
     return genai.GenerativeModel(normalized_model)
 
 
+class GeminiEmbeddings:
+    """Wrapper for Gemini embeddings API to match langchain interface."""
+    
+    def __init__(self, model: str = "models/embedding-001", google_api_key: Optional[str] = None):
+        """Initialize Gemini embeddings."""
+        self.model = model
+        self.api_key = google_api_key or settings.google_api_key
+        if not self.api_key:
+            raise ValueError("GOOGLE_API_KEY environment variable is not set.")
+        genai.configure(api_key=self.api_key)
+    
+    def embed_query(self, text: str) -> List[float]:
+        """Get embedding for a single query text."""
+        return self.embed_documents([text])[0]
+    
+    def embed_documents(self, texts: List[str]) -> List[List[float]]:
+        """Get embeddings for multiple documents."""
+        try:
+            # Gemini API processes one text at a time or in batch
+            # For batch, we'll process each text individually to ensure compatibility
+            embeddings = []
+            for text in texts:
+                result = genai.embed_content(
+                    model=self.model,
+                    content=text,
+                    task_type="retrieval_document",
+                )
+                
+                # Extract embedding from response
+                if hasattr(result, "embedding"):
+                    embeddings.append(result.embedding)
+                elif isinstance(result, dict) and "embedding" in result:
+                    embeddings.append(result["embedding"])
+                else:
+                    # Try to get the first value if it's a dict/list
+                    if isinstance(result, dict):
+                        # Look for any list/array value
+                        for key, value in result.items():
+                            if isinstance(value, list) and len(value) > 0:
+                                embeddings.append(value)
+                                break
+                        else:
+                            raise ValueError(f"Could not extract embedding from response: {result}")
+                    else:
+                        raise ValueError(f"Unexpected response type: {type(result)}")
+            
+            return embeddings
+            
+        except Exception as e:
+            logger.error(f"Gemini embeddings API error: {e}")
+            raise
+
+
 def get_gemini_embeddings(
     model_name: str = "models/embedding-001",
-) -> GoogleGenerativeAIEmbeddings:
+) -> GeminiEmbeddings:
     """Get configured Google Gemini embeddings."""
-    if not settings.google_api_key:
-        raise ValueError("GOOGLE_API_KEY environment variable is not set.")
-
-    return GoogleGenerativeAIEmbeddings(
-        model=model_name,
-        google_api_key=settings.google_api_key,
-    )
+    return GeminiEmbeddings(model=model_name)
