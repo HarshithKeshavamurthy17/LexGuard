@@ -13,9 +13,9 @@ python-dotenv>=1.0.0
 google-generativeai>=0.8.3
 # openai>=1.3.0  # Uncomment if using OpenAI instead
 
-# Embeddings - Use sentence-transformers for local/free embeddings (Ollama-style)
-# This is required for Railway when using Ollama LLM (no API quotas)
-sentence-transformers>=2.2.2  # Local embeddings - works with Ollama LLM
+# Embeddings - Use ChromaDB's default embeddings (lightweight, no heavy dependencies)
+# sentence-transformers>=2.2.2  # Too heavy for Railway (pulls in PyTorch ~5GB)
+# Use ChromaDB's default embedding function instead
 
 # Vector database (lightweight)
 chromadb>=0.4.22

@@ -32,9 +32,9 @@ class Settings(BaseSettings):
     ollama_base_url: str = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
 
     # Embedding Configuration
-    # Default to sentence-transformers when using Ollama (local, free, no quotas)
-    embedding_provider: Literal["ollama", "sentence-transformers", "openai", "gemini"] = os.getenv(
-        "EMBEDDING_PROVIDER", "sentence-transformers"
+    # Default to chromadb (lightweight, no heavy dependencies like PyTorch)
+    embedding_provider: Literal["ollama", "sentence-transformers", "openai", "gemini", "chromadb"] = os.getenv(
+        "EMBEDDING_PROVIDER", "chromadb"
     )
     embedding_model: str = os.getenv("EMBEDDING_MODEL", "")
 
