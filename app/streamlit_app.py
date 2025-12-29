@@ -1,6 +1,5 @@
 """LexGuard Enhanced UI - Beautiful, Modern, Comprehensive Contract Analysis."""
 
-# Force reload: v5
 import os
 import sys
 import subprocess
@@ -38,14 +37,21 @@ def sync_streamlit_secrets_to_env():
     """Mirror Streamlit secrets into os.environ so the backend process inherits them."""
     try:
         secrets_obj = st.secrets
-    except Exception:
+    except (AttributeError, Exception) as e:
+        # Streamlit secrets not available (normal on Railway - we use env vars directly)
+        # Railway uses environment variables, not Streamlit secrets
         return
 
     from collections.abc import Mapping
 
-    if isinstance(secrets_obj, Mapping):
-        for top_key, top_value in secrets_obj.items():
-            _walk_secrets(top_key, top_value)
+    # Only sync if secrets actually exist (not empty)
+    try:
+        if isinstance(secrets_obj, Mapping) and len(secrets_obj) > 0:
+            for top_key, top_value in secrets_obj.items():
+                _walk_secrets(top_key, top_value)
+    except Exception:
+        # If secrets are empty or not available, that's fine - Railway uses env vars directly
+        pass
 
 
 sync_streamlit_secrets_to_env()
@@ -973,7 +979,7 @@ def show_contract_analysis():
     tab1, tab2, tab3, tab4, tab5 = st.tabs([
         "📊 Dashboard", 
         "📋 Clauses", 
-        "💡 Contract Q&A", 
+        "❓ Questions", 
         "📄 Report",
         "🔍 Deep Analysis"
     ])
@@ -1305,105 +1311,202 @@ def show_enhanced_clauses(contract_id):
 def show_enhanced_chat(contract_id):
     """Show comprehensive questions interface."""
     st.markdown("""
-    <h2 style="color: #111827; font-weight: 800; font-size: 2rem;">💡 Comprehensive Questions</h2>
+    <h2 style="color: #111827; font-weight: 800; font-size: 2rem; margin-bottom: 0.5rem;">❓ Comprehensive Contract Questions</h2>
     <p style="color: #6b7280; font-size: 1.1rem; margin-bottom: 2rem;">
-        Select a question below to get an instant, AI-generated answer based on your document.
+        Select any question below to get a detailed answer based on your contract analysis.
     </p>
     """, unsafe_allow_html=True)
 
-    # Predefined questions categorized
-    question_categories = {
-        "🔑 Key Terms & Dates": [
-            "What is the effective date?",
-            "What is the expiration date?",
-            "What is the duration/term of the contract?",
-            "What are the renewal terms?",
-            "Is there an auto-renewal clause?",
-            "What are the notice periods for renewal or termination?",
-            "Who are the parties involved?",
-            "What is the territory or scope of the agreement?"
+    # Comprehensive questions organized by category
+    questions_by_category = {
+        "📋 Obligations & Responsibilities": [
+            ("What are the main obligations in this contract?", "📌"),
+            ("What are my specific responsibilities and duties?", "👤"),
+            ("What are the other party's obligations?", "🤝"),
+            ("Are there any performance requirements I must meet?", "✅"),
+            ("What deliverables or services am I required to provide?", "📦"),
         ],
-        "💰 Financials": [
-            "What are the payment terms?",
-            "What is the total contract value?",
-            "Are there any late payment penalties?",
-            "Are there any price adjustment clauses?",
-            "Who is responsible for taxes?",
-            "Are there any hidden fees or expenses?",
-            "What is the invoicing schedule?",
-            "Are there any audit rights?"
+        "💰 Financial Terms": [
+            ("What are the payment terms and amounts?", "💵"),
+            ("When are payments due and what is the payment schedule?", "📅"),
+            ("Are there any late payment fees or penalties?", "⏰"),
+            ("What are the total costs, fees, or charges?", "💳"),
+            ("Are there any refund or cancellation policies?", "↩️"),
+            ("What are the pricing or rate structures?", "📊"),
         ],
-        "🛡️ Risk & Liability": [
-            "What are the indemnification obligations?",
-            "What are the limitations of liability?",
-            "Are there any warranties or guarantees?",
-            "What are the insurance requirements?",
-            "Is there a force majeure clause?",
-            "What are the confidentiality obligations?",
-            "Are there any liquidated damages?",
-            "What are the data protection requirements?"
+        "⏰ Timeframes & Deadlines": [
+            ("What are the important dates and deadlines?", "📆"),
+            ("What is the contract duration or term?", "⏳"),
+            ("Are there any milestone dates I need to meet?", "🎯"),
+            ("What are the notice periods for various actions?", "📬"),
+            ("When does this contract start and end?", "🗓️"),
         ],
-        "🚪 Termination & Breach": [
-            "How can I terminate this contract?",
-            "What constitutes a material breach?",
-            "Are there any termination fees?",
-            "What happens upon termination?",
-            "What are the dispute resolution mechanisms?",
-            "Is arbitration mandatory?",
-            "What is the cure period for a breach?",
-            "Can I terminate for convenience?"
+        "🚪 Termination & Exit": [
+            ("What are the termination conditions and notice periods?", "🚪"),
+            ("How can I terminate this contract?", "✂️"),
+            ("What happens if I want to cancel or exit early?", "🚶"),
+            ("Are there any penalties for early termination?", "💰"),
+            ("Under what circumstances can the contract be terminated?", "⚠️"),
         ],
-        "⚖️ General & Compliance": [
-            "What is the governing law?",
-            "Are there non-compete clauses?",
-            "Are there non-solicitation clauses?",
-            "Are there assignment restrictions?",
-            "Who are the authorized signatories?",
-            "Are there any exclusivity clauses?",
-            "Is there a 'time is of the essence' clause?",
-            "What are the amendment procedures?"
-        ]
+        "⚠️ Risks & Liabilities": [
+            ("What are the highest risk clauses I should worry about?", "🔴"),
+            ("What liability and indemnification obligations do I have?", "🛡️"),
+            ("What are my potential financial risks?", "💸"),
+            ("Are there any warranty or guarantee obligations?", "🔒"),
+            ("What happens if I breach this contract?", "❌"),
+            ("What are the consequences of non-compliance?", "⚖️"),
+        ],
+        "🔒 Legal Protections": [
+            ("Are there any confidentiality or non-disclosure requirements?", "🔐"),
+            ("What intellectual property rights are involved?", "💡"),
+            ("Are there any non-compete or exclusivity clauses?", "🚫"),
+            ("What dispute resolution mechanisms are in place?", "⚖️"),
+            ("What governing law applies to this contract?", "📜"),
+            ("Are there any force majeure or act of God provisions?", "🌪️"),
+        ],
+        "📝 Contract Structure": [
+            ("Who are the parties to this contract?", "👥"),
+            ("What is the purpose and scope of this agreement?", "🎯"),
+            ("What are the key terms and conditions?", "📋"),
+            ("Are there any amendments or modifications to standard terms?", "📝"),
+            ("What are the most important clauses I should review?", "⭐"),
+        ],
+        "🔄 Renewal & Changes": [
+            ("Can this contract be renewed or extended?", "🔄"),
+            ("How can this contract be modified or amended?", "✏️"),
+            ("What happens at the end of the contract term?", "🏁"),
+            ("Are there automatic renewal provisions?", "♻️"),
+        ],
     }
 
-    # Initialize answer state if not present
-    if "current_answer" not in st.session_state:
-        st.session_state.current_answer = None
-    if "current_question" not in st.session_state:
-        st.session_state.current_question = None
+    # Initialize session state for selected question and answer
+    if "selected_question" not in st.session_state:
+        st.session_state.selected_question = None
+    if "question_answer" not in st.session_state:
+        st.session_state.question_answer = None
+    if "question_clauses" not in st.session_state:
+        st.session_state.question_clauses = None
 
-    # Create tabs for categories
-    tabs = st.tabs(list(question_categories.keys()))
+    # Display questions in a grid layout
+    for category, questions in questions_by_category.items():
+        st.markdown(f"""
+        <div style="background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%); 
+                    padding: 1.5rem; border-radius: 12px; margin-bottom: 1.5rem; 
+                    border-left: 5px solid #0ea5e9;">
+            <h3 style="color: #111827; font-weight: 700; margin: 0 0 1rem 0; font-size: 1.3rem;">
+                {category}
+            </h3>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        # Create columns for questions (2 columns)
+        cols = st.columns(2)
+        for idx, (question, emoji) in enumerate(questions):
+            col = cols[idx % 2]
+            with col:
+                button_key = f"q_{hash(question)}_{contract_id}"
+                if st.button(
+                    f"{emoji} {question}",
+                    key=button_key,
+                    use_container_width=True,
+                    type="primary" if st.session_state.selected_question == question else "secondary"
+                ):
+                    st.session_state.selected_question = question
+                    st.session_state.question_answer = None
+                    st.session_state.question_clauses = None
+                    st.rerun()
+        
+        st.markdown("<br>", unsafe_allow_html=True)
 
-    # Iterate through tabs and categories
-    for i, (category, questions) in enumerate(question_categories.items()):
-        with tabs[i]:
-            # Create a grid layout for questions within the tab
-            cols = st.columns(2)  # 2 columns for better readability of longer questions
-            
-            for j, question in enumerate(questions):
-                with cols[j % 2]:
-                    if st.button(question, key=f"q_btn_{i}_{j}", use_container_width=True):
-                        with st.spinner(f"Analyzing: {question}..."):
-                            response = chat_with_contract(contract_id, question)
-                            if response:
-                                st.session_state.current_question = question
-                                st.session_state.current_answer = response.get("answer", "No answer found.")
-                            else:
-                                st.session_state.current_answer = "Sorry, I couldn't generate an answer at this time."
-
-    # Display the answer if one is selected
-    if st.session_state.current_answer:
+    # Display answer when a question is selected
+    if st.session_state.selected_question:
         st.markdown("---")
-        st.markdown("### 📝 Answer")
-        st.info(f"**Q: {st.session_state.current_question}**")
-        st.markdown(
-            f"""
-            <div style="background-color: white; padding: 20px; border-radius: 10px; border: 1px solid #e5e7eb; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); color: #1f2937; line-height: 1.6;">
-                {st.session_state.current_answer}
+        st.markdown(f"""
+        <div style="background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%); 
+                    padding: 1.5rem; border-radius: 12px; margin-bottom: 1.5rem; 
+                    border-left: 5px solid #f59e0b;">
+            <h3 style="color: #111827; font-weight: 700; margin: 0 0 0.5rem 0;">
+                ❓ Your Question
+            </h3>
+            <p style="color: #1f2937; font-size: 1.1rem; margin: 0; font-weight: 600;">
+                {st.session_state.selected_question}
+            </p>
+        </div>
+        """, unsafe_allow_html=True)
+
+        # Fetch answer if not already cached
+        if st.session_state.question_answer is None:
+            with st.spinner("🤔 Analyzing your contract and generating answer..."):
+                response = chat_with_contract(contract_id, st.session_state.selected_question)
+                
+                if response:
+                    st.session_state.question_answer = response.get("answer", "")
+                    st.session_state.question_clauses = response.get("relevant_clauses", [])
+                else:
+                    st.session_state.question_answer = "Sorry, I couldn't generate an answer. Please try again."
+                    st.session_state.question_clauses = []
+                    st.error("❌ Failed to get answer. Please try again.")
+
+        # Display answer
+        if st.session_state.question_answer:
+            st.markdown("""
+            <div style="background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%); 
+                        padding: 2rem; border-radius: 12px; margin-bottom: 1.5rem; 
+                        border-left: 5px solid #3b82f6;">
+                <h3 style="color: #111827; font-weight: 700; margin: 0 0 1rem 0;">
+                    🤖 AI Answer
+                </h3>
             </div>
-            """,
-            unsafe_allow_html=True
-        )
+            """, unsafe_allow_html=True)
+            
+            st.markdown(f"""
+            <div style="background: #ffffff; padding: 1.5rem; border-radius: 8px; 
+                        border: 2px solid #e5e7eb; margin-bottom: 1.5rem;">
+                <p style="color: #1f2937; font-size: 1.05rem; line-height: 1.8; margin: 0; 
+                          white-space: pre-wrap; word-wrap: break-word;">
+                    {st.session_state.question_answer}
+                </p>
+            </div>
+            """, unsafe_allow_html=True)
+
+            # Display relevant clauses
+            if st.session_state.question_clauses:
+                with st.expander("📚 Related Clauses from Your Contract", expanded=True):
+                    for clause in st.session_state.question_clauses:
+                        risk_emoji = {"high": "🔴", "medium": "🟡", "low": "🟢"}.get(
+                            clause.get('risk_level', 'unknown'), "⚪"
+                        )
+                        clause_type = clause.get('type', 'unknown').replace('_', ' ').title()
+                        risk_level = clause.get('risk_level', 'unknown')
+                        
+                        st.markdown(f"""
+                        <div style="background: #f8fafc; padding: 1rem; border-radius: 8px; 
+                                    margin: 0.5rem 0; border-left: 4px solid #94a3b8;">
+                            <p style="color: #111827; font-weight: 700; margin: 0 0 0.5rem 0; font-size: 1rem;">
+                                {risk_emoji} {clause_type} <span style="color: #6b7280; font-weight: 500;">[{risk_level} risk]</span>
+                            </p>
+                        </div>
+                        """, unsafe_allow_html=True)
+                        
+                        # Clean and format clause text
+                        cleaned_clause_text = re.sub(r'\s+', ' ', clause.get("text", "").strip())
+                        st.markdown(f"""
+                        <div style="background: #ffffff; padding: 1rem; border-radius: 6px; 
+                                    margin: 0.5rem 0 1rem 0; border: 1px solid #e5e7eb;">
+                            <p style="color: #1e293b; font-size: 0.95rem; font-weight: 500; margin: 0; 
+                                     line-height: 1.7; white-space: normal; word-wrap: break-word;">
+                                {cleaned_clause_text}
+                            </p>
+                        </div>
+                        """, unsafe_allow_html=True)
+                        st.markdown("---")
+
+        # Button to clear selection
+        if st.button("🔄 Select a Different Question", use_container_width=True):
+            st.session_state.selected_question = None
+            st.session_state.question_answer = None
+            st.session_state.question_clauses = None
+            st.rerun()
 
 
 def show_report_section(contract_id):
@@ -1624,7 +1727,7 @@ def show_report_section(contract_id):
     <div style="background: white; padding: 2rem; border-radius: 12px; border: 2px solid #e5e7eb;">
         <ol style="color: #1f2937; line-height: 2; font-size: 1.05rem;">
             <li><strong>Review all high-risk clauses</strong> identified in this report with your legal team</li>
-            <li><strong>Use the Contract Q&A tab</strong> to ask specific questions about any clause or term</li>
+            <li><strong>Use the AI Chat tab</strong> to ask specific questions about any clause or term</li>
             <li><strong>Check the Deep Analysis tab</strong> for detailed breakdowns of parties, dates, and obligations</li>
             <li><strong>Prepare negotiation points</strong> for clauses that don't align with your interests</li>
             <li><strong>Consult with an attorney</strong> before signing, especially for high-value or complex agreements</li>
@@ -1635,7 +1738,7 @@ def show_report_section(contract_id):
     
     # Footer
     st.markdown("---")
-    st.info("💡 **Have questions?** Use the Contract Q&A tab to ask anything about this contract!")
+    st.info("💬 **Have questions?** Use the AI Chat tab to ask anything about this contract!")
 
 
 
@@ -1718,7 +1821,7 @@ def show_deep_analysis(contract_id):
     
     # Summary footer
     st.markdown("---")
-    st.info("💡 **Tip**: Use the Contract Q&A tab to ask specific questions about any of these elements!")
+    st.info("💡 **Tip**: Use the AI Chat tab to ask specific questions about any of these elements!")
 
 
 
