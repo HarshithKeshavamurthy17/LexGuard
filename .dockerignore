@@ -1,0 +1,84 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+dist/
+build/
+*.egg
+
+# Virtual environments
+venv/
+env/
+ENV/
+.venv
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Data files (don't need in image)
+data/
+*.pdf
+*.json
+*.db
+*.sqlite
+*.sqlite3
+
+# Logs
+*.log
+logs/
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+
+# Documentation
+docs/
+*.md
+!README.md
+
+# Git
+.git/
+.gitignore
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Railway
+.railway/
+
+# Large model files (will download at runtime)
+models/
+*.bin
+*.pt
+*.pth
+*.onnx
+
+# ChromaDB data
+chroma/
+*.chroma
+
+# Reports
+reports/
+*.pdf
+
+# Uploads
+uploads/
+
+# Poetry
+poetry.lock
+.poetry/
+
+# Environment
+.env
+.env.local
+
