@@ -15,7 +15,8 @@ class Settings(BaseSettings):
     """Application settings."""
 
     # LLM Configuration
-    llm_provider: Literal["ollama", "openai", "gemini"] = os.getenv("LLM_PROVIDER", "gemini")
+    # Set to "none" to disable LLM completely (uses rule-based fallbacks)
+    llm_provider: Literal["ollama", "openai", "gemini", "none"] = os.getenv("LLM_PROVIDER", "none")
     
     # OpenAI Configuration
     openai_api_key: str = os.getenv("OPENAI_API_KEY", "")
@@ -27,10 +28,12 @@ class Settings(BaseSettings):
     
     # Ollama Configuration
     ollama_model: str = os.getenv("OLLAMA_MODEL", "llama3.2")
+    # Default to localhost, but should be set to public Ollama server URL for Railway
     ollama_base_url: str = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
 
     # Embedding Configuration
-    embedding_provider: Literal["sentence-transformers", "openai", "gemini"] = os.getenv(
+    # Default to sentence-transformers when using Ollama (local, free, no quotas)
+    embedding_provider: Literal["ollama", "sentence-transformers", "openai", "gemini"] = os.getenv(
         "EMBEDDING_PROVIDER", "sentence-transformers"
     )
     embedding_model: str = os.getenv("EMBEDDING_MODEL", "")
@@ -59,7 +62,10 @@ class Settings(BaseSettings):
         (self.data_dir / "reports").mkdir(exist_ok=True)
 
         # Ensure sensible defaults for embedding models per provider
-        if self.embedding_provider == "sentence-transformers":
+        if self.embedding_provider == "ollama":
+            if not self.embedding_model:
+                self.embedding_model = "nomic-embed-text"  # Lightweight Ollama embedding model
+        elif self.embedding_provider == "sentence-transformers":
             if not self.embedding_model or self.embedding_model.startswith("models/"):
                 self.embedding_model = "all-MiniLM-L6-v2"
         elif self.embedding_provider == "openai":

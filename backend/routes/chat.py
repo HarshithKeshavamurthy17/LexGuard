@@ -89,23 +89,32 @@ async def chat_with_contract(contract_id: str, request: ChatRequest):
 
         context = "\n".join(context_parts)
 
-        # RAG-Only Mode: Construct answer directly from retrieved clauses
-        logger.info("RAG-Only Mode V2 ACTIVATED: Constructing answer from retrieved clauses...")
-        
-        intro = f"**Based on the document, here are the relevant sections regarding '{request.query}':**\n\n"
-        
-        highlights = []
-        for result in search_results:
-            clause_text = result["text"].strip()
-            metadata = result["metadata"]
-            clause_type = metadata.get("clause_type", "Clause").replace("_", " ").title()
-            
-            # Format each clause as a distinct block
-            highlights.append(f"**{clause_type}**\n> {clause_text}")
+        # Try LLM first, but always have rule-based fallback
+        logger.info("Generating answer...")
+        llm = get_llm_client()
 
-        answer = intro + "\n\n".join(highlights)
-        
-        return ChatResponse(answer=answer, relevant_clauses=relevant_clauses)
+        # Check if LLM is disabled
+        use_llm = True
+        try:
+            # Try to use LLM
+            prompt = CONTRACT_QA_PROMPT.format(context=context, question=request.query)
+
+            messages = [
+                {
+                    "role": "system",
+                    "content": "You are a legal contract assistant. Answer questions accurately based on the provided contract clauses.",
+                },
+                {"role": "user", "content": prompt},
+            ]
+
+            answer = llm.chat(messages, temperature=0.5, max_tokens=500)
+            logger.info("Successfully generated answer with LLM")
+            return ChatResponse(answer=answer, relevant_clauses=relevant_clauses)
+        except (RuntimeError, Exception) as llm_error:
+            # LLM disabled or failed - use rule-based answer
+            logger.info("Using rule-based answer (LLM disabled or unavailable)")
+            answer = _build_rule_based_chat_answer(request.query, relevant_clauses)
+            return ChatResponse(answer=answer, relevant_clauses=relevant_clauses)
 
     except HTTPException:
         raise
@@ -118,29 +127,117 @@ async def chat_with_contract(contract_id: str, request: ChatRequest):
 
 def _build_rule_based_chat_answer(question: str, clauses: list[dict]) -> str:
     """
-    Provide a deterministic fallback answer based on retrieved clauses when the LLM fails.
+    Provide an intelligent rule-based answer based on question patterns and retrieved clauses.
     """
     if not clauses:
         return (
-            "I couldn't reach the AI model, and there were no relevant clauses to reference. "
-            "Please try rephrasing your question or re-running the analysis."
+            "I couldn't find relevant clauses to answer your question. "
+            "Try rephrasing or ask about specific topics like termination, liability, payment, or obligations."
         )
 
-    intro = (
-        "I couldn't reach the AI model, so here's a quick summary based on the clauses I found:\n"
-    )
-    highlights = []
-    for clause in clauses:
-        clause_type = clause.get("type", "clause").replace("_", " ").title()
-        text = clause.get("text", "").strip()
-        snippet = text if len(text) <= 280 else text[:280].rstrip() + "..."
-        highlights.append(f"- {clause_type}: {snippet}")
-
-    outro = (
-        "\nIf you need more detail, try refining the question or download the report for the full text."
-    )
-
-    return intro + "\n".join(highlights) + outro
+    question_lower = question.lower()
+    
+    # Pattern matching for common question types
+    answer_parts = []
+    
+    # Obligations questions
+    if any(word in question_lower for word in ["obligation", "responsibilit", "duty", "must", "required", "deliverable"]):
+        answer_parts.append("**Based on the contract clauses, here are the key obligations:**\n\n")
+        obligation_clauses = [c for c in clauses if "obligation" in c.get("text", "").lower() or 
+                             c.get("type", "") in ["payment", "termination", "confidentiality"]]
+        if not obligation_clauses:
+            obligation_clauses = clauses[:3]  # Fallback to first few
+        
+        for i, clause in enumerate(obligation_clauses[:5], 1):
+            clause_type = clause.get("type", "clause").replace("_", " ").title()
+            text = clause.get("text", "").strip()
+            snippet = text[:300] + "..." if len(text) > 300 else text
+            answer_parts.append(f"{i}. **{clause_type}**: {snippet}\n")
+    
+    # Payment questions
+    elif any(word in question_lower for word in ["payment", "fee", "cost", "price", "amount", "due", "refund"]):
+        answer_parts.append("**Payment and Financial Terms:**\n\n")
+        payment_clauses = [c for c in clauses if c.get("type") == "payment" or 
+                          any(word in c.get("text", "").lower() for word in ["payment", "fee", "cost", "amount", "$"])]
+        if not payment_clauses:
+            payment_clauses = clauses[:3]
+        
+        for i, clause in enumerate(payment_clauses[:5], 1):
+            text = clause.get("text", "").strip()
+            snippet = text[:350] + "..." if len(text) > 350 else text
+            answer_parts.append(f"{i}. {snippet}\n")
+    
+    # Termination questions
+    elif any(word in question_lower for word in ["terminat", "end", "cancel", "exit", "leave", "notice period"]):
+        answer_parts.append("**Termination and Exit Conditions:**\n\n")
+        term_clauses = [c for c in clauses if c.get("type") == "termination" or 
+                       any(word in c.get("text", "").lower() for word in ["terminat", "cancel", "end", "notice"])]
+        if not term_clauses:
+            term_clauses = clauses[:3]
+        
+        for i, clause in enumerate(term_clauses[:5], 1):
+            text = clause.get("text", "").strip()
+            snippet = text[:350] + "..." if len(text) > 350 else text
+            answer_parts.append(f"{i}. {snippet}\n")
+    
+    # Liability questions
+    elif any(word in question_lower for word in ["liability", "indemnif", "damage", "risk", "responsible"]):
+        answer_parts.append("**Liability and Risk Assessment:**\n\n")
+        liability_clauses = [c for c in clauses if c.get("type") == "liability" or 
+                            c.get("risk_level") in ["high", "medium"] or
+                            any(word in c.get("text", "").lower() for word in ["liability", "indemnif", "damage"])]
+        if not liability_clauses:
+            liability_clauses = clauses[:3]
+        
+        for i, clause in enumerate(liability_clauses[:5], 1):
+            clause_type = clause.get("type", "clause").replace("_", " ").title()
+            risk = clause.get("risk_level", "unknown").upper()
+            text = clause.get("text", "").strip()
+            snippet = text[:300] + "..." if len(text) > 300 else text
+            answer_parts.append(f"{i}. **{clause_type}** (Risk: {risk}): {snippet}\n")
+    
+    # Time/Date questions
+    elif any(word in question_lower for word in ["date", "deadline", "duration", "term", "when", "time", "period"]):
+        answer_parts.append("**Important Dates and Timeframes:**\n\n")
+        date_clauses = [c for c in clauses if any(word in c.get("text", "").lower() for word in 
+                          ["date", "deadline", "duration", "term", "period", "day", "month", "year"])]
+        if not date_clauses:
+            date_clauses = clauses[:3]
+        
+        for i, clause in enumerate(date_clauses[:5], 1):
+            text = clause.get("text", "").strip()
+            snippet = text[:350] + "..." if len(text) > 350 else text
+            answer_parts.append(f"{i}. {snippet}\n")
+    
+    # IP questions
+    elif any(word in question_lower for word in ["intellectual property", "ip", "copyright", "patent", "ownership"]):
+        answer_parts.append("**Intellectual Property Terms:**\n\n")
+        ip_clauses = [c for c in clauses if c.get("type") == "ip" or 
+                     any(word in c.get("text", "").lower() for word in ["intellectual", "copyright", "patent", "ownership"])]
+        if not ip_clauses:
+            ip_clauses = clauses[:3]
+        
+        for i, clause in enumerate(ip_clauses[:5], 1):
+            text = clause.get("text", "").strip()
+            snippet = text[:350] + "..." if len(text) > 350 else text
+            answer_parts.append(f"{i}. {snippet}\n")
+    
+    # Default: General answer
+    else:
+        answer_parts.append("**Relevant Contract Clauses:**\n\n")
+        for i, clause in enumerate(clauses[:5], 1):
+            clause_type = clause.get("type", "clause").replace("_", " ").title()
+            risk = clause.get("risk_level", "unknown")
+            text = clause.get("text", "").strip()
+            snippet = text[:280] + "..." if len(text) > 280 else text
+            answer_parts.append(f"{i}. **{clause_type}** ({risk} risk): {snippet}\n")
+    
+    # Add summary note
+    answer_parts.append("\n---\n")
+    answer_parts.append("💡 **Tip**: Review the full clause text in the 'Clause Analysis' tab for complete details. "
+                        "Download the PDF report for a comprehensive analysis.")
+    
+    return "".join(answer_parts)
 
 
 

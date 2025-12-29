@@ -37,19 +37,24 @@ def get_embedding(text: str) -> List[float]:
     provider = settings.embedding_provider
     logger.info(f"Generating embedding using provider: '{provider}'")
     
-    if provider == "openai":
+    if provider == "ollama":
+        return _get_ollama_embedding(text)
+    elif provider == "openai":
         return _get_openai_embedding(text)
     elif provider == "gemini":
         return _get_gemini_embedding(text)
     elif provider == "sentence-transformers" and HAS_SENTENCE_TRANSFORMERS:
         return _get_sentence_transformer_embedding(text)
     else:
-        # Fallback
-        if provider == "sentence-transformers":
-            logger.warning("sentence-transformers requested but not installed. Falling back to Gemini.")
+        # Fallback to sentence-transformers if available, else error
+        if HAS_SENTENCE_TRANSFORMERS:
+            logger.warning(f"Unknown provider '{provider}'. Falling back to sentence-transformers.")
+            return _get_sentence_transformer_embedding(text)
         else:
-            logger.warning(f"Unknown or missing provider '{provider}'. Defaulting to Gemini.")
-        return _get_gemini_embedding(text)
+            raise ValueError(
+                f"Unknown embedding provider '{provider}' and sentence-transformers not available. "
+                "Please install sentence-transformers or configure a valid provider."
+            )
 
 
 def _get_sentence_transformer_embedding(text: str) -> List[float]:
@@ -84,6 +89,41 @@ def _get_openai_embedding(text: str) -> List[float]:
     return response.data[0].embedding
 
 
+def _get_ollama_embedding(text: str) -> List[float]:
+    """Get embedding using Ollama."""
+    import httpx
+    
+    model = settings.embedding_model or "nomic-embed-text"
+    base_url = settings.ollama_base_url
+    
+    try:
+        with httpx.Client(timeout=30.0) as client:
+            response = client.post(
+                f"{base_url}/api/embeddings",
+                json={
+                    "model": model,
+                    "prompt": text,
+                },
+            )
+            response.raise_for_status()
+            result = response.json()
+            return result.get("embedding", [])
+    except httpx.ConnectError:
+        logger.error("Could not connect to Ollama. Falling back to sentence-transformers.")
+        if HAS_SENTENCE_TRANSFORMERS:
+            return _get_sentence_transformer_embedding(text)
+        raise ConnectionError(
+            "Ollama is not running and sentence-transformers not available. "
+            "Please start Ollama with: ollama serve"
+        )
+    except Exception as e:
+        logger.error(f"Ollama embedding error: {e}")
+        if HAS_SENTENCE_TRANSFORMERS:
+            logger.warning("Falling back to sentence-transformers.")
+            return _get_sentence_transformer_embedding(text)
+        raise
+
+
 def _get_gemini_embedding(text: str) -> List[float]:
     """Get embedding using Google Gemini."""
     from lexguard.llm.gemini_client import get_gemini_embeddings
@@ -99,19 +139,24 @@ def get_embeddings_batch(texts: List[str]) -> List[List[float]]:
     provider = settings.embedding_provider
     logger.info(f"Generating batch embeddings using provider: '{provider}'")
 
-    if provider == "openai":
+    if provider == "ollama":
+        return _get_ollama_embeddings_batch(texts)
+    elif provider == "openai":
         return _get_openai_embeddings_batch(texts)
     elif provider == "gemini":
         return _get_gemini_embeddings_batch(texts)
     elif provider == "sentence-transformers" and HAS_SENTENCE_TRANSFORMERS:
         return _get_sentence_transformer_embeddings_batch(texts)
     else:
-        # Fallback
-        if provider == "sentence-transformers":
-            logger.warning("sentence-transformers requested but not installed. Falling back to Gemini.")
+        # Fallback to sentence-transformers if available, else error
+        if HAS_SENTENCE_TRANSFORMERS:
+            logger.warning(f"Unknown provider '{provider}'. Falling back to sentence-transformers.")
+            return _get_sentence_transformer_embeddings_batch(texts)
         else:
-            logger.warning(f"Unknown or missing provider '{provider}'. Defaulting to Gemini.")
-        return _get_gemini_embeddings_batch(texts)
+            raise ValueError(
+                f"Unknown embedding provider '{provider}' and sentence-transformers not available. "
+                "Please install sentence-transformers or configure a valid provider."
+            )
 
 
 def _get_sentence_transformer_embeddings_batch(texts: List[str]) -> List[List[float]]:
@@ -143,6 +188,45 @@ def _get_openai_embeddings_batch(texts: List[str]) -> List[List[float]]:
     )
 
     return [item.embedding for item in response.data]
+
+
+def _get_ollama_embeddings_batch(texts: List[str]) -> List[List[float]]:
+    """Get embeddings in batch using Ollama."""
+    import httpx
+    
+    model = settings.embedding_model or "nomic-embed-text"
+    base_url = settings.ollama_base_url
+    
+    try:
+        # Ollama processes one at a time for embeddings
+        embeddings = []
+        with httpx.Client(timeout=60.0) as client:
+            for text in texts:
+                response = client.post(
+                    f"{base_url}/api/embeddings",
+                    json={
+                        "model": model,
+                        "prompt": text,
+                    },
+                )
+                response.raise_for_status()
+                result = response.json()
+                embeddings.append(result.get("embedding", []))
+        return embeddings
+    except httpx.ConnectError:
+        logger.error("Could not connect to Ollama. Falling back to sentence-transformers.")
+        if HAS_SENTENCE_TRANSFORMERS:
+            return _get_sentence_transformer_embeddings_batch(texts)
+        raise ConnectionError(
+            "Ollama is not running and sentence-transformers not available. "
+            "Please start Ollama with: ollama serve"
+        )
+    except Exception as e:
+        logger.error(f"Ollama embedding error: {e}")
+        if HAS_SENTENCE_TRANSFORMERS:
+            logger.warning("Falling back to sentence-transformers.")
+            return _get_sentence_transformer_embeddings_batch(texts)
+        raise
 
 
 def _get_gemini_embeddings_batch(texts: List[str]) -> List[List[float]]:

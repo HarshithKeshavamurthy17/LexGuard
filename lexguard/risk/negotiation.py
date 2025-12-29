@@ -8,7 +8,7 @@ from lexguard.models.clause import Clause, ClauseType
 logger = logging.getLogger(__name__)
 
 
-def suggest_negotiation_points(clause: Clause, use_llm: bool = True) -> List[str]:
+def suggest_negotiation_points(clause: Clause, use_llm: bool = False) -> List[str]:
     """
     Generate negotiation suggestions for a clause.
 

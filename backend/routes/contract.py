@@ -83,7 +83,7 @@ async def get_contract(contract_id: str):
 
     try:
         # Generate summary
-        summary = build_contract_summary(contract, use_llm=True)
+        summary = build_contract_summary(contract, use_llm=False)
 
         return ContractResponse(
             id=contract.id,
@@ -193,7 +193,7 @@ async def download_report(contract_id: str):
 
     try:
         # Generate summary
-        summary = build_contract_summary(contract, use_llm=True)
+        summary = build_contract_summary(contract, use_llm=False)
 
         # Get clause risks
         clause_risks = []
@@ -306,7 +306,7 @@ async def analyze_clause(contract_id: str, clause_id: str, request: ClauseUpdate
         target_clause.clause_type = classify_clause(request.text)
 
         # Re-calculate risk
-        calculate_clause_risk(target_clause, use_llm=True)
+        calculate_clause_risk(target_clause, use_llm=False)
 
         # Save contract
         save_contract(contract)

@@ -15,12 +15,18 @@ def get_llm_client() -> LLMClient:
     Checks LLM_PROVIDER environment variable:
     - "ollama" -> Use Ollama (free, local)
     - "openai" -> Use OpenAI API
-    - "gemini" -> Use Gemini API (default)
+    - "gemini" -> Use Gemini API
+    - "none" -> No LLM (always fails gracefully, uses rule-based fallbacks)
 
     Returns:
         LLM client instance
     """
     provider = settings.llm_provider.lower()
+
+    if provider == "none":
+        from lexguard.llm.none_client import NoneClient
+        logger.info("LLM disabled - using rule-based fallbacks only")
+        return NoneClient()
 
     if provider == "ollama":
         from lexguard.llm.ollama_client import OllamaClient
@@ -39,11 +45,11 @@ def get_llm_client() -> LLMClient:
         logger.info("Using Gemini API")
         return GeminiClient(model=settings.gemini_model)
 
-    # Default to Gemini
-    from lexguard.llm.gemini_client import GeminiClient
-    logger.warning("Unknown LLM provider '%s'. Defaulting to Gemini.", provider)
-    return GeminiClient(model=settings.gemini_model)
+    # Default to none (no LLM)
+    from lexguard.llm.none_client import NoneClient
+    logger.warning("Unknown LLM provider '%s'. Disabling LLM (using rule-based fallbacks).", provider)
+    return NoneClient()
 
 
-__all__ = ["LLMClient", "get_llm_client"]
+__all__ = ["LLMClient", "get_llm_client", "NoneClient"]
 

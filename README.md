@@ -87,18 +87,20 @@ LexGuard is a comprehensive legal document analyzer that combines modern data en
 
 ## 🚀 Quick Start
 
-### Prerequisites
+### Option 1: Local Development
+
+#### Prerequisites
 
 - Python 3.11 or higher
-- OpenAI API key
+- OpenAI API key (or Google Gemini API key)
 - (Optional) Tesseract OCR for scanned PDFs
 
-### Installation
+#### Installation
 
 1. **Clone the repository**
    ```bash
    git clone <repository-url>
-   cd lexguard-contract-ai
+   cd legal-helper
    ```
 
 2. **Install dependencies with Poetry**
@@ -128,6 +130,23 @@ LexGuard is a comprehensive legal document analyzer that combines modern data en
 5. **Access the UI**
    
    Open your browser to: **http://localhost:8501**
+
+### Option 2: Deploy to Railway (Recommended for Production)
+
+🚂 **Deploy LexGuard to Railway in minutes!**
+
+See **[RAILWAY_DEPLOYMENT.md](./RAILWAY_DEPLOYMENT.md)** for complete step-by-step instructions.
+
+**Quick Deploy:**
+1. Push your code to GitHub
+2. Connect Railway to your GitHub repo
+3. Set start command: `streamlit run app/streamlit_app.py --server.port $PORT --server.address 0.0.0.0`
+4. Add environment variables (API keys, etc.)
+5. Generate domain - your app is live!
+
+**Live Demo**: [https://lexguard-production.up.railway.app](https://lexguard-production.up.railway.app) *(Replace with your Railway URL)*
+
+💡 **Note:** This app uses Railway's free tier. If it hasn't been visited recently, it may take 10-30 seconds to wake up. This is normal behavior for free hosting.
 
 ---
 
@@ -358,6 +377,45 @@ Interactive Swagger UI with all endpoints documented.
 - `GET /api/contracts/{id}/risk` - Get risk assessment
 - `POST /api/contracts/{id}/chat` - Chat with contract
 - `GET /api/contracts/{id}/report` - Download PDF report
+
+---
+
+## 🚂 Deployment
+
+### Railway Deployment
+
+LexGuard is optimized for deployment on Railway.app. See the complete guide:
+
+📖 **[RAILWAY_DEPLOYMENT.md](./RAILWAY_DEPLOYMENT.md)** - Step-by-step Railway deployment instructions
+
+### Deployment Checklist
+
+✅ **[DEPLOYMENT_CHECKLIST.md](./DEPLOYMENT_CHECKLIST.md)** - Use this checklist to ensure successful deployment
+
+### Quick Deploy Commands
+
+**Start Command for Railway:**
+```bash
+streamlit run app/streamlit_app.py --server.port $PORT --server.address 0.0.0.0
+```
+
+**Required Environment Variables:**
+- `LLM_PROVIDER` - "gemini", "openai", or "ollama"
+- `EMBEDDING_PROVIDER` - "sentence-transformers" (recommended for free tier)
+- `GOOGLE_API_KEY` or `OPENAI_API_KEY` - API key for your chosen LLM provider
+- `CHROMA_DB_PATH` - `/tmp/data/chroma` (for Railway ephemeral storage)
+- `DATA_DIR` - `/tmp/data`
+
+### Free Tier Notes
+
+- ⏰ **Wake-up Time**: 10-30 seconds after inactivity (normal for free tier)
+- 💤 **Sleep Mode**: App sleeps after 7 days of inactivity
+- 💾 **Storage**: Ephemeral (data lost on restart) - use `/tmp/data`
+- ✅ **Acceptable**: Sleep mode and wake-up delays are expected behavior
+
+### Troubleshooting
+
+🐛 **[TROUBLESHOOTING.md](./TROUBLESHOOTING.md)** - Common issues and solutions
 
 ---
 
