@@ -4,7 +4,10 @@ import json
 import logging
 from typing import Dict, List, Any
 
-from openai import OpenAI
+try:
+    from openai import OpenAI
+except ImportError:
+    OpenAI = None  # type: ignore
 
 from lexguard.config import settings
 from lexguard.llm.base import LLMClient
@@ -17,6 +20,10 @@ class OpenAIClient(LLMClient):
 
     def __init__(self):
         """Initialize OpenAI client."""
+        if OpenAI is None:
+            raise ImportError(
+                "OpenAI package not installed. Install it with: pip install openai"
+            )
         if not settings.openai_api_key:
             raise ValueError("OPENAI_API_KEY not configured")
 
